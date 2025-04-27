@@ -1,0 +1,26 @@
+# Virtual environment
+venv/
+.env
+
+# Database
+*.sqlite3
+*.db
+
+# Python cache
+__pycache__/
+*.pyc
+
+# IDE
+.vscode/
+.idea/
+
+# Static files (collectstatic)
+staticfiles/
+
+# Media files
+media/
+
+# Secrets
+secrets.json
+.env
+*.key
