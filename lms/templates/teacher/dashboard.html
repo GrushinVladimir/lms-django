@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>Панель преподавателя</h1>
+<div class="courses">
+    {% for course in courses %}
+    <div class="course-card">
+        <h2>{{ course.name }}</h2>
+        <p>{{ course.description }}</p>
+        <a href="{% url 'course_detail' course.id %}" class="btn">Управление курсом</a>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

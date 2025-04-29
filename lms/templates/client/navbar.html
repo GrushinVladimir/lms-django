@@ -1,0 +1,9 @@
+<span>navbar</span>
+{% if user.is_authenticated %}
+<form action="{% url 'logout' %}" method="post" class="d-inline">
+    {% csrf_token %}
+    <button type="submit" class="nav-link btn btn-link">Выйти</button>
+</form>
+{% else %}
+<a href="{% url 'login' %}">Войти</a>
+{% endif %}

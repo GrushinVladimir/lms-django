@@ -1,0 +1,341 @@
+-- Создание таблицы Users (Пользователи)
+CREATE TABLE Users (
+    id SERIAL PRIMARY KEY,
+    username VARCHAR(150) NOT NULL UNIQUE,
+    email VARCHAR(254) NOT NULL UNIQUE,
+    password VARCHAR(128) NOT NULL,
+    first_name VARCHAR(150),
+    last_name VARCHAR(150),
+    is_active BOOLEAN DEFAULT TRUE,
+    is_superuser BOOLEAN DEFAULT FALSE,
+    last_login TIMESTAMP WITH TIME ZONE,
+    date_joined TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+-- Создание таблицы Roles (Роли пользователей)
+CREATE TABLE Roles (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(50) NOT NULL UNIQUE,
+    description TEXT
+);
+
+-- Наполнение таблицы Roles базовыми ролями
+INSERT INTO Roles (name, description) VALUES 
+('student', 'Студент - имеет доступ к материалам курсов'),
+('teacher', 'Преподаватель - может создавать материалы и оценивать работы'),
+('superuser', 'Администратор - полный доступ к системе');
+CREATE TABLE UserRoles (
+    user_id INTEGER NOT NULL REFERENCES Users(id) ON DELETE CASCADE,
+    role_id INTEGER NOT NULL REFERENCES Roles(id) ON DELETE CASCADE,
+    assigned_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (user_id, role_id)
+);
+-- Создание таблицы Courses (Предметы)
+CREATE TABLE Courses (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    description TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Создание таблицы Groups (Группы студентов)
+CREATE TABLE Groups (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(50) NOT NULL UNIQUE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Создание таблицы Materials (Материалы)
+CREATE TABLE Materials (
+    id SERIAL PRIMARY KEY,
+    course_id INTEGER NOT NULL REFERENCES Courses(id) ON DELETE CASCADE,
+    title VARCHAR(255) NOT NULL,
+    content TEXT,
+    type VARCHAR(50) NOT NULL,
+    deadline TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Создание таблицы Assignments (Задания)
+CREATE TABLE Assignments (
+    id SERIAL PRIMARY KEY,
+    material_id INTEGER NOT NULL REFERENCES Materials(id) ON DELETE CASCADE,
+    title VARCHAR(255) NOT NULL,
+    description TEXT,
+    max_score INTEGER,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Предполагаем, что таблица Users уже существует
+-- Создание таблицы Submissions (Сданные задания)
+CREATE TABLE Submissions (
+    id SERIAL PRIMARY KEY,
+    assignment_id INTEGER NOT NULL REFERENCES Assignments(id) ON DELETE CASCADE,
+    student_id INTEGER NOT NULL, -- REFERENCES Users(id) ON DELETE CASCADE,
+    submission_content TEXT NOT NULL,
+    score INTEGER,
+    submitted_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    status VARCHAR(50)
+);
+
+-- Создание таблицы Progress (Прогресс студента)
+CREATE TABLE Progress (
+    id SERIAL PRIMARY KEY,
+    student_id INTEGER NOT NULL, -- REFERENCES Users(id) ON DELETE CASCADE,
+    course_id INTEGER NOT NULL REFERENCES Courses(id) ON DELETE CASCADE,
+    progress DECIMAL(5,2) CHECK (progress >= 0 AND progress <= 100),
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(student_id, course_id)
+);
+
+-- Создание таблицы Messages (Сообщения в чате)
+CREATE TABLE Messages (
+    id SERIAL PRIMARY KEY,
+    course_id INTEGER NOT NULL REFERENCES Courses(id) ON DELETE CASCADE,
+    sender_id INTEGER NOT NULL, -- REFERENCES Users(id) ON DELETE CASCADE,
+    receiver_id INTEGER NOT NULL, -- REFERENCES Users(id) ON DELETE CASCADE,
+    content TEXT NOT NULL,
+    sent_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Создание таблицы Access (Доступы к предметам)
+CREATE TABLE Access (
+    id SERIAL PRIMARY KEY,
+    course_id INTEGER NOT NULL REFERENCES Courses(id) ON DELETE CASCADE,
+    group_id INTEGER NOT NULL REFERENCES Groups(id) ON DELETE CASCADE,
+    granted_by INTEGER NOT NULL, -- REFERENCES Users(id) ON DELETE CASCADE,
+    granted_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    revoked_at TIMESTAMP WITH TIME ZONE,
+    UNIQUE(course_id, group_id)
+);
+
+-- Создание таблицы TeacherCourses (Назначение преподавателей на предметы)
+CREATE TABLE TeacherCourses (
+    id SERIAL PRIMARY KEY,
+    teacher_id INTEGER NOT NULL, -- REFERENCES Users(id) ON DELETE CASCADE,
+    course_id INTEGER NOT NULL REFERENCES Courses(id) ON DELETE CASCADE,
+    assigned_by INTEGER NOT NULL, -- REFERENCES Users(id) ON DELETE CASCADE,
+    assigned_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(teacher_id, course_id)
+);
+
+-- Создание индексов для улучшения производительности
+CREATE INDEX idx_materials_course_id ON Materials(course_id);
+CREATE INDEX idx_assignments_material_id ON Assignments(material_id);
+CREATE INDEX idx_submissions_assignment_id ON Submissions(assignment_id);
+CREATE INDEX idx_submissions_student_id ON Submissions(student_id);
+CREATE INDEX idx_progress_student_id ON Progress(student_id);
+CREATE INDEX idx_progress_course_id ON Progress(course_id);
+CREATE INDEX idx_messages_course_id ON Messages(course_id);
+CREATE INDEX idx_messages_sender_id ON Messages(sender_id);
+CREATE INDEX idx_messages_receiver_id ON Messages(receiver_id);
+CREATE INDEX idx_access_course_id ON Access(course_id);
+CREATE INDEX idx_access_group_id ON Access(group_id);
+CREATE INDEX idx_teacher_courses_teacher_id ON TeacherCourses(teacher_id);
+CREATE INDEX idx_teacher_courses_course_id ON TeacherCourses(course_id);
+
+
+
+
+
+
+-- Проверяем существование таблицы Users перед созданием
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_tables WHERE tablename = 'users') THEN
+        -- Создаем таблицу пользователей только если она не существует
+        CREATE TABLE Users (
+            id SERIAL PRIMARY KEY,
+            password VARCHAR(128) NOT NULL,
+            last_login TIMESTAMP WITH TIME ZONE,
+            is_superuser BOOLEAN NOT NULL DEFAULT FALSE,
+            username VARCHAR(150) NOT NULL UNIQUE,
+            first_name VARCHAR(150) NOT NULL DEFAULT '',
+            last_name VARCHAR(150) NOT NULL DEFAULT '',
+            email VARCHAR(254) NOT NULL DEFAULT '',
+            is_staff BOOLEAN NOT NULL DEFAULT FALSE,
+            is_active BOOLEAN NOT NULL DEFAULT TRUE,
+            date_joined TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+        );
+    END IF;
+END $$;
+
+-- Таблица учебных групп студентов (например, "231254")
+CREATE TABLE IF NOT EXISTS StudentGroups (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(50) NOT NULL UNIQUE,
+    description TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Дополнительные профили пользователей
+CREATE TABLE IF NOT EXISTS UserProfiles (
+    user_id INTEGER PRIMARY KEY REFERENCES auth_user(id) ON DELETE CASCADE,
+    middle_name VARCHAR(150),
+    phone VARCHAR(20),
+    avatar VARCHAR(255),
+    student_group_id INTEGER REFERENCES StudentGroups(id) ON DELETE SET NULL
+);
+
+-- Таблица курсов (предметов)
+CREATE TABLE IF NOT EXISTS Courses (
+    id SERIAL PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    code VARCHAR(50) UNIQUE,
+    description TEXT,
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Таблица назначения преподавателей на курсы
+CREATE TABLE IF NOT EXISTS CourseTeachers (
+    id SERIAL PRIMARY KEY,
+    course_id INTEGER NOT NULL REFERENCES Courses(id) ON DELETE CASCADE,
+    teacher_id INTEGER NOT NULL REFERENCES auth_user(id) ON DELETE CASCADE,
+    is_main BOOLEAN DEFAULT FALSE,
+    assigned_by INTEGER REFERENCES auth_user(id) ON DELETE SET NULL,
+    assigned_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(course_id, teacher_id)
+);
+
+-- Таблица учебных модулей
+CREATE TABLE IF NOT EXISTS Modules (
+    id SERIAL PRIMARY KEY,
+    course_id INTEGER NOT NULL REFERENCES Courses(id) ON DELETE CASCADE,
+    title VARCHAR(255) NOT NULL,
+    description TEXT,
+    order_number INTEGER NOT NULL,
+    is_published BOOLEAN DEFAULT FALSE,
+    publish_date TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Таблица материалов курса
+CREATE TABLE IF NOT EXISTS Materials (
+    id SERIAL PRIMARY KEY,
+    module_id INTEGER NOT NULL REFERENCES Modules(id) ON DELETE CASCADE,
+    title VARCHAR(255) NOT NULL,
+    content TEXT,
+    material_type VARCHAR(50) NOT NULL, -- lecture, test, assignment, file, link
+    external_link VARCHAR(512),
+    file_path VARCHAR(255),
+    order_number INTEGER NOT NULL,
+    is_published BOOLEAN DEFAULT FALSE,
+    publish_date TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Таблица заданий
+CREATE TABLE IF NOT EXISTS Assignments (
+    id SERIAL PRIMARY KEY,
+    material_id INTEGER NOT NULL REFERENCES Materials(id) ON DELETE CASCADE,
+    max_score INTEGER,
+    due_date TIMESTAMP WITH TIME ZONE,
+    submission_type VARCHAR(50) NOT NULL, -- text, file, both
+    attempts_allowed INTEGER DEFAULT 1,
+    grading_type VARCHAR(50) -- points, pass/fail, etc.
+);
+
+-- Таблица сданных работ
+CREATE TABLE IF NOT EXISTS Submissions (
+    id SERIAL PRIMARY KEY,
+    assignment_id INTEGER NOT NULL REFERENCES Assignments(id) ON DELETE CASCADE,
+    student_id INTEGER NOT NULL REFERENCES auth_user(id) ON DELETE CASCADE,
+    submission_text TEXT,
+    submission_file VARCHAR(255),
+    submitted_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    status VARCHAR(50) DEFAULT 'submitted',
+    attempt_number INTEGER DEFAULT 1
+);
+
+-- Таблица оценок
+CREATE TABLE IF NOT EXISTS Grades (
+    id SERIAL PRIMARY KEY,
+    submission_id INTEGER REFERENCES Submissions(id) ON DELETE CASCADE,
+    assignment_id INTEGER NOT NULL REFERENCES Assignments(id) ON DELETE CASCADE,
+    student_id INTEGER NOT NULL REFERENCES auth_user(id) ON DELETE CASCADE,
+    score INTEGER,
+    feedback TEXT,
+    graded_by INTEGER REFERENCES auth_user(id) ON DELETE SET NULL,
+    graded_at TIMESTAMP WITH TIME ZONE,
+    status VARCHAR(50) -- graded, pending, etc.
+);
+
+-- Таблица доступа групп к курсам
+CREATE TABLE IF NOT EXISTS CourseAccess (
+    id SERIAL PRIMARY KEY,
+    course_id INTEGER NOT NULL REFERENCES Courses(id) ON DELETE CASCADE,
+    group_id INTEGER NOT NULL REFERENCES StudentGroups(id) ON DELETE CASCADE,
+    access_type VARCHAR(50) NOT NULL, -- read, submit, etc.
+    granted_by INTEGER REFERENCES auth_user(id) ON DELETE SET NULL,
+    granted_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    revoked_at TIMESTAMP WITH TIME ZONE,
+    UNIQUE(course_id, group_id, access_type)
+);
+
+-- Таблица чатов
+CREATE TABLE IF NOT EXISTS Chats (
+    id SERIAL PRIMARY KEY,
+    course_id INTEGER NOT NULL REFERENCES Courses(id) ON DELETE CASCADE,
+    student_id INTEGER NOT NULL REFERENCES auth_user(id) ON DELETE CASCADE,
+    teacher_id INTEGER NOT NULL REFERENCES auth_user(id) ON DELETE CASCADE,
+    is_active BOOLEAN DEFAULT TRUE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Таблица сообщений
+CREATE TABLE IF NOT EXISTS Messages (
+    id SERIAL PRIMARY KEY,
+    chat_id INTEGER NOT NULL REFERENCES Chats(id) ON DELETE CASCADE,
+    sender_id INTEGER NOT NULL REFERENCES auth_user(id) ON DELETE CASCADE,
+    content TEXT NOT NULL,
+    is_read BOOLEAN DEFAULT FALSE,
+    sent_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Таблица просмотров материалов студентами
+CREATE TABLE IF NOT EXISTS MaterialViews (
+    id SERIAL PRIMARY KEY,
+    material_id INTEGER NOT NULL REFERENCES Materials(id) ON DELETE CASCADE,
+    student_id INTEGER NOT NULL REFERENCES auth_user(id) ON DELETE CASCADE,
+    first_viewed_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    last_viewed_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    view_count INTEGER DEFAULT 1,
+    UNIQUE(material_id, student_id)
+);
+
+-- Таблица прогресса студентов
+CREATE TABLE IF NOT EXISTS StudentProgress (
+    id SERIAL PRIMARY KEY,
+    student_id INTEGER NOT NULL REFERENCES auth_user(id) ON DELETE CASCADE,
+    course_id INTEGER NOT NULL REFERENCES Courses(id) ON DELETE CASCADE,
+    completion_percentage DECIMAL(5,2) DEFAULT 0.00,
+    materials_viewed INTEGER DEFAULT 0,
+    materials_total INTEGER DEFAULT 0,
+    assignments_completed INTEGER DEFAULT 0,
+    assignments_total INTEGER DEFAULT 0,
+    average_score DECIMAL(5,2),
+    last_updated TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(student_id, course_id)
+);
+
+-- Создание индексов (только если они не существуют)
+DO $$
+BEGIN
+    -- Проверяем и создаем индексы только если они не существуют
+    IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'idx_userprofiles_group_id') THEN
+        CREATE INDEX idx_userprofiles_group_id ON UserProfiles(student_group_id);
+    END IF;
+    
+    IF NOT EXISTS (SELECT 1 FROM pg_indexes WHERE indexname = 'idx_courseteachers_teacher_id') THEN
+        CREATE INDEX idx_courseteachers_teacher_id ON CourseTeachers(teacher_id);
+    END IF;
+    
+    -- Аналогично для остальных индексов...
+END $$;
