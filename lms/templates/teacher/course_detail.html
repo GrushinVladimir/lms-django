@@ -1,16 +1,22 @@
 {% extends 'base.html' %}
 
 {% block content %}
-  <h1>{{ course.name }}</h1>
-  <a href="{% url 'create_module' course.id %}">Добавить модуль</a>
-  <h2>Модули:</h2>
-  <ul>
-    {% for module in modules %}
-      <li>
-        <a href="{% url 'module_detail' module.id %}">{{ module.title }}</a>
-        <a href="{% url 'edit_module' module.id %}">Редактировать</a>
-        <a href="{% url 'delete_module' module.id %}">Удалить</a>
-      </li>
-    {% endfor %}
-  </ul>
+<h2>{{ course.name }}</h2>
+<p>{{ course.description|safe }}</p>
+<a href="{% url 'create_module' course.id %}" class="btn btn-primary mb-3">Создать модуль</a>
+<div class="row">
+  {% for module in modules %}
+    <div class="col-md-4">
+      <div class="card mb-4">
+        <div class="card-body">
+          <h5 class="card-title">{{ module.title }}</h5>
+          <p class="card-text">{{ module.description|truncatewords:20 }}</p>
+          <a href="{% url 'module_detail' module.id %}" class="btn btn-primary">Перейти к модулю</a>
+        </div>
+      </div>
+    </div>
+  {% endfor %}
+</div>
+<a href="{% url 'edit_course' course.id %}" class="btn btn-secondary">Редактировать курс</a>
+<a href="{% url 'delete_course' course.id %}" class="btn btn-danger">Удалить курс</a>
 {% endblock %}

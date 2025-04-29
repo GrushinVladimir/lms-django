@@ -1,10 +1,85 @@
 {% extends 'base.html' %}
 
 {% block content %}
-  <h1>Добавить материал</h1>
-  <form method="post" enctype="multipart/form-data">
-    {% csrf_token %}
-    {{ form.as_p }}
-    <button type="submit">Сохранить</button>
-  </form>
+<h1>Добавить материал</h1>
+<form method="post" enctype="multipart/form-data" id="material-form">
+  {% csrf_token %}
+  
+  <div class="mb-3">
+    {{ form.title.label_tag }}
+    {{ form.title }}
+  </div>
+  
+  <div class="mb-3">
+    {{ form.material_type.label_tag }}
+    {{ form.material_type }}
+  </div>
+  
+  <div id="content-field" class="mb-3">
+    {{ form.content.label_tag }}
+    {{ form.content }}
+  </div>
+  
+  <div id="file-field" class="mb-3" style="display: none;">
+    {{ form.file.label_tag }}
+    {{ form.file }}
+  </div>
+  
+  <div id="link-field" class="mb-3" style="display: none;">
+    {{ form.external_link.label_tag }}
+    {{ form.external_link }}
+  </div>
+  
+  <div class="mb-3">
+    {{ form.is_published.label_tag }}
+    {{ form.is_published }}
+  </div>
+  
+  <div id="publish-date-field" class="mb-3" style="display: none;">
+    {{ form.publish_date.label_tag }}
+    {{ form.publish_date }}
+  </div>
+  
+  <button type="submit" class="btn btn-primary">Сохранить</button>
+  <a href="{% url 'module_detail' module.id %}" class="btn btn-secondary">Отмена</a>
+</form>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const materialType = document.getElementById('id_material_type');
+  const contentField = document.getElementById('content-field');
+  const fileField = document.getElementById('file-field');
+  const linkField = document.getElementById('link-field');
+  const publishDateField = document.getElementById('publish-date-field');
+  const isPublished = document.getElementById('id_is_published');
+
+  function updateFields() {
+    const type = materialType.value;
+    
+    // Скрываем/показываем поля в зависимости от типа материала
+    contentField.style.display = type === 'lecture' ? 'block' : 'none';
+    fileField.style.display = type === 'file' ? 'block' : 'none';
+    linkField.style.display = type === 'link' ? 'block' : 'none';
+    
+    // Обновляем обязательность полей
+    document.getElementById('id_content').required = type === 'lecture';
+    document.getElementById('id_file').required = type === 'file';
+    document.getElementById('id_external_link').required = type === 'link';
+  }
+
+  // Обработчик изменения типа материала
+  materialType.addEventListener('change', updateFields);
+  
+  // Обработчик для даты публикации
+  isPublished.addEventListener('change', function() {
+    publishDateField.style.display = this.checked ? 'block' : 'none';
+  });
+
+  // Инициализация при загрузке
+  updateFields();
+  if (isPublished.checked) {
+    publishDateField.style.display = 'block';
+  }
+});
+</script>
 {% endblock %}

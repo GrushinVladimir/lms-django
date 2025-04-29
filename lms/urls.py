@@ -4,7 +4,8 @@ from .views import (
     material_detail, create_material, edit_material, delete_material,
     create_assignment, edit_assignment, delete_assignment, grade_submission,
     submission_detail, submit_assignment, chat_detail, create_course,
-    edit_course, delete_course, create_module, edit_module, delete_module
+    edit_course, delete_course, create_module, edit_module, delete_module,
+    create_test_questions, edit_question, take_test
 )
 from django.contrib.auth import views as auth_views
 
@@ -33,4 +34,7 @@ urlpatterns = [
     path('module/delete/<int:module_id>/', delete_module, name='delete_module'),
     path('login/', auth_views.LoginView.as_view(template_name='registration/login.html'), name='login'),
     path('logout/', auth_views.LogoutView.as_view(), name='logout'),
+    path('assignment/<int:assignment_id>/questions/', create_test_questions, name='create_test_questions'),
+    path('question/<int:question_id>/edit/', edit_question, name='edit_question'),
+    path('test/<int:assignment_id>/take/', take_test, name='take_test'),
 ]

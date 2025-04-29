@@ -1,3 +1,20 @@
+--Удалил и заного создал таблицу профиксили--
+CREATE TABLE lms_assignment (
+    id SERIAL PRIMARY KEY,
+    material_id INTEGER NOT NULL UNIQUE REFERENCES lms_material(id),
+    assignment_type VARCHAR(20) NOT NULL DEFAULT 'lab',
+    max_score INTEGER NOT NULL DEFAULT 100,
+    due_date TIMESTAMP WITH TIME ZONE,
+    lab_file VARCHAR(100),
+    submission_type VARCHAR(50) NOT NULL DEFAULT 'file',
+    attempts_allowed INTEGER NOT NULL DEFAULT 1,
+    grading_type VARCHAR(50),
+    CONSTRAINT lms_assignment_material_id_uniq UNIQUE (material_id)
+);
+
+CREATE INDEX lms_assignment_material_id ON lms_assignment (material_id);
+
+
 --Удаляем лишние таблицы 
 DROP TABLE IF EXISTS Users CASCADE;
 DROP TABLE IF EXISTS Roles CASCADE;

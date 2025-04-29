@@ -1,19 +1,29 @@
 {% extends 'base.html' %}
 
 {% block content %}
-  <h1>{{ material.title }}</h1>
-  <p>{{ material.content }}</p>
-  <a href="{% url 'edit_material' material.id %}">Редактировать материал</a>
-  <a href="{% url 'delete_material' material.id %}">Удалить материал</a>
-  <a href="{% url 'create_assignment' material.id %}">Добавить задание</a>
-  <h2>Задания:</h2>
-  <ul>
-    {% for assignment in material.assignment_set.all %}
-      <li>
-        <a href="{% url 'edit_assignment' assignment.id %}">{{ assignment.material.title }}</a>
-        <a href="{% url 'edit_assignment' assignment.id %}">Редактировать</a>
-        <a href="{% url 'delete_assignment' assignment.id %}">Удалить</a>
-      </li>
-    {% endfor %}
-  </ul>
+<h2>{{ material.title }}</h2>
+<p>{{ material.content|safe }}</p>
+
+{% if material.material_type == 'test' %}
+  <h3>{{ assignment.get_assignment_type_display }}</h3>
+  <p>Количество вопросов: {{ assignment.questions.count }}</p>
+  <p>Макс. баллов: {{ assignment.max_score }}</p>
+  <p>Срок сдачи: {{ assignment.due_date|date:"d.m.Y H:i" }}</p>
+  <a href="{% url 'take_test' assignment.id %}" class="btn btn-primary">Пройти тест</a>
+  <a href="{% url 'create_test_questions' assignment.id %}" class="btn btn-secondary">Редактировать тест</a>
+{% elif material.material_type == 'assignment' %}
+  <h3>Задание</h3>
+  <p>Макс. баллов: {{ assignment.max_score }}</p>
+  <p>Срок сдачи: {{ assignment.due_date|date:"d.m.Y H:i" }}</p>
+  <a href="{% url 'submit_assignment' assignment.id %}" class="btn btn-primary">Сдать задание</a>
+  <a href="{% url 'edit_assignment' assignment.id %}" class="btn btn-secondary">Редактировать задание</a>
+{% elif material.material_type == 'file' %}
+  <h3>Файл</h3>
+  <a href="{{ material.file.url }}" class="btn btn-primary">Скачать файл</a>
+{% elif material.material_type == 'link' %}
+  <h3>Ссылка</h3>
+  <a href="{{ material.external_link }}" class="btn btn-primary">Перейти по ссылке</a>
+{% endif %}
+
+<a href="{% url 'module_detail' material.module.id %}" class="btn btn-secondary mt-3">Вернуться к модулю</a>
 {% endblock %}

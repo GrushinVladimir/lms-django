@@ -1,0 +1,11 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h2>Оценить сдачу задания: {{ submission.assignment.material.title }}</h2>
+<form method="post">
+  {% csrf_token %}
+  {{ form.as_p }}
+  <button type="submit" class="btn btn-primary">Сохранить оценку</button>
+  <a href="{% url 'submission_detail' submission.id %}" class="btn btn-secondary">Отмена</a>
+</form>
+{% endblock %}

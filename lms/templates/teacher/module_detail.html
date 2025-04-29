@@ -1,16 +1,22 @@
 {% extends 'base.html' %}
 
 {% block content %}
-  <h1>{{ module.title }}</h1>
-  <a href="{% url 'create_material' module.id %}">Добавить материал</a>
-  <h2>Материалы:</h2>
-  <ul>
-    {% for material in materials %}
-      <li>
-        <a href="{% url 'material_detail' material.id %}">{{ material.title }}</a>
-        <a href="{% url 'edit_material' material.id %}">Редактировать</a>
-        <a href="{% url 'delete_material' material.id %}">Удалить</a>
-      </li>
-    {% endfor %}
-  </ul>
+<h2>{{ module.title }}</h2>
+<p>{{ module.description|safe }}</p>
+<a href="{% url 'create_material' module.id %}" class="btn btn-primary mb-3">Создать материал</a>
+<div class="row">
+  {% for material in materials %}
+    <div class="col-md-4">
+      <div class="card mb-4">
+        <div class="card-body">
+          <h5 class="card-title">{{ material.title }}</h5>
+          <p class="card-text">{{ material.content|truncatewords:20 }}</p>
+          <a href="{% url 'material_detail' material.id %}" class="btn btn-primary">Перейти к материалу</a>
+        </div>
+      </div>
+    </div>
+  {% endfor %}
+</div>
+<a href="{% url 'edit_module' module.id %}" class="btn btn-secondary">Редактировать модуль</a>
+<a href="{% url 'delete_module' module.id %}" class="btn btn-danger">Удалить модуль</a>
 {% endblock %}

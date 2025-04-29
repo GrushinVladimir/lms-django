@@ -1,12 +1,18 @@
 {% extends 'base.html' %}
 
 {% block content %}
-  <h1>Панель студента</h1>
-  <h2>Добро пожаловать, {{ user.username }}!</h2>
-  <h3>Ваши курсы:</h3>
-  <ul>
-    {% for course in courses %}
-      <li><a href="{% url 'course_detail' course.id %}">{{ course.name }}</a></li>
-    {% endfor %}
-  </ul>
+<h2>Панель управления студента</h2>
+<div class="row">
+  {% for course in courses %}
+    <div class="col-md-4">
+      <div class="card mb-4">
+        <div class="card-body">
+          <h5 class="card-title">{{ course.name }}</h5>
+          <p class="card-text">{{ course.description|truncatewords:20 }}</p>
+          <a href="{% url 'course_detail' course.id %}" class="btn btn-primary">Перейти к курсу</a>
+        </div>
+      </div>
+    </div>
+  {% endfor %}
+</div>
 {% endblock %}

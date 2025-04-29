@@ -1,10 +1,11 @@
 {% extends 'base.html' %}
 
 {% block content %}
-  <h1>Сдать задание: {{ assignment.material.title }}</h1>
-  <form method="post" enctype="multipart/form-data">
-    {% csrf_token %}
-    {{ form.as_p }}
-    <button type="submit">Сдать</button>
-  </form>
+<h2>Сдать задание: {{ assignment.material.title }}</h2>
+<form method="post" enctype="multipart/form-data">
+  {% csrf_token %}
+  {{ form.as_p }}
+  <button type="submit" class="btn btn-primary">Отправить</button>
+  <a href="{% url 'material_detail' assignment.material.id %}" class="btn btn-secondary">Отмена</a>
+</form>
 {% endblock %}

@@ -1,0 +1,194 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h2>Конструктор теста: {{ assignment.material.title }}</h2>
+<form method="post" id="test-form">
+  {% csrf_token %}
+  {{ formset.management_form }}
+  <input type="hidden" name="form-TOTAL_FORMS" id="id_form-TOTAL_FORMS" value="{{ formset.total_form_count }}">
+  <input type="hidden" name="form-INITIAL_FORMS" id="id_form-INITIAL_FORMS" value="{{ formset.initial_form_count }}">
+  <input type="hidden" name="form-MIN_NUM_FORMS" id="id_form-MIN_NUM_FORMS" value="0">
+  <input type="hidden" name="form-MAX_NUM_FORMS" id="id_form-MAX_NUM_FORMS" value="1000">
+
+  <div id="questions-container">
+    {% for form in formset %}
+      <div class="card mb-4 question-card" data-prefix="{{ form.prefix }}">
+        <div class="card-header">
+          <h5>Вопрос {{ forloop.counter }}</h5>
+        </div>
+        <div class="card-body">
+          {{ form.as_p }}
+
+          <div class="options-container mb-3">
+            <h6>Варианты ответов:</h6>
+            {{ form.option_formset.management_form }}
+            {% for option_form in form.option_formset %}
+              <div class="option-form mb-2">
+                <div class="d-flex align-items-center">
+                  {{ option_form.id }}
+                  {{ option_form.option_text }}
+                  <div class="ms-3 form-check">
+                    {{ option_form.is_correct }}
+                    <label class="form-check-label" for="{{ option_form.is_correct.id_for_label }}">
+                      Правильный
+                    </label>
+                  </div>
+                  {% if option_form.instance.pk %}
+                    {{ option_form.DELETE }}
+                    <label class="ms-2" for="{{ option_form.DELETE.id_for_label }}">Удалить</label>
+                  {% endif %}
+                </div>
+              </div>
+            {% endfor %}
+            <button type="button" class="btn btn-sm btn-outline-primary add-option">
+              Добавить вариант
+            </button>
+          </div>
+        </div>
+        <div class="card-footer">
+          <button type="button" class="btn btn-primary save-question">Сохранить вопрос</button>
+          <button type="button" class="btn btn-secondary edit-question" style="display: none;">Редактировать вопрос</button>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+
+  <div class="d-flex justify-content-between mt-4">
+    <button type="button" id="add-question" class="btn btn-success">
+      Добавить вопрос
+    </button>
+    <div>
+      <button type="submit" class="btn btn-primary">Сохранить тест</button>
+      <a href="{% url 'material_detail' assignment.material.id %}" class="btn btn-secondary">
+        Вернуться к материалу
+      </a>
+    </div>
+  </div>
+</form>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  // Функция для добавления нового варианта ответа
+  function addOption(event) {
+    const btn = event.target.closest('.add-option');
+    const container = btn.closest('.options-container');
+    const totalFormsInput = container.querySelector('[name$=TOTAL_FORMS]');
+    if (!totalFormsInput) {
+      console.error('TOTAL_FORMS input not found');
+      return;
+    }
+    const formCount = parseInt(totalFormsInput.value);
+    const prefix = container.closest('.question-card').dataset.prefix;
+
+    const newForm = document.createElement('div');
+    newForm.className = 'option-form mb-2';
+    newForm.innerHTML = `
+      <div class="d-flex align-items-center">
+        <input type="text" name="${prefix}-option_formset-${formCount}-option_text" class="form-control" placeholder="Вариант ответа">
+        <div class="ms-3 form-check">
+          <input type="checkbox" name="${prefix}-option_formset-${formCount}-is_correct" class="form-check-input">
+          <label class="form-check-label">Правильный</label>
+        </div>
+      </div>
+    `;
+
+    container.insertBefore(newForm, btn);
+    totalFormsInput.value = formCount + 1;
+  }
+
+  // Делегирование событий для кнопок "Добавить вариант"
+  document.getElementById('questions-container').addEventListener('click', function(event) {
+    if (event.target.classList.contains('add-option')) {
+      addOption(event);
+    }
+  });
+
+  // Функция для добавления нового вопроса
+  document.getElementById('add-question').addEventListener('click', function() {
+    const totalFormsInput = document.getElementById('id_form-TOTAL_FORMS');
+    if (!totalFormsInput) {
+      console.error('TOTAL_FORMS input not found');
+      return;
+    }
+    const formCount = parseInt(totalFormsInput.value);
+    const container = document.getElementById('questions-container');
+
+    const newQuestion = document.createElement('div');
+    newQuestion.className = 'card mb-4 question-card';
+    newQuestion.dataset.prefix = `form-${formCount}`;
+    newQuestion.innerHTML = `
+      <div class="card-header">
+        <h5>Вопрос ${formCount + 1}</h5>
+      </div>
+      <div class="card-body">
+        <input type="hidden" name="form-${formCount}-id" id="id_form-${formCount}-id">
+        <div class="mb-3">
+          <label for="id_form-${formCount}-question_text">Текст вопроса:</label>
+          <textarea name="form-${formCount}-question_text" class="form-control" id="id_form-${formCount}-question_text"></textarea>
+        </div>
+        <div class="mb-3">
+          <label for="id_form-${formCount}-question_type">Тип вопроса:</label>
+          <select name="form-${formCount}-question_type" class="form-select" id="id_form-${formCount}-question_type">
+            <option value="single">Один правильный ответ</option>
+            <option value="multiple">Несколько правильных ответов</option>
+            <option value="text">Текстовый ответ</option>
+          </select>
+        </div>
+
+        <div class="options-container mb-3">
+          <h6>Варианты ответов:</h6>
+          <input type="hidden" name="form-${formCount}-option_formset-TOTAL_FORMS" value="0" id="id_form-${formCount}-option_formset-TOTAL_FORMS">
+          <input type="hidden" name="form-${formCount}-option_formset-INITIAL_FORMS" value="0" id="id_form-${formCount}-option_formset-INITIAL_FORMS">
+          <button type="button" class="btn btn-sm btn-outline-primary add-option">
+            Добавить вариант
+          </button>
+        </div>
+      </div>
+      <div class="card-footer">
+        <button type="button" class="btn btn-primary save-question">Сохранить вопрос</button>
+        <button type="button" class="btn btn-secondary edit-question" style="display: none;">Редактировать вопрос</button>
+      </div>
+    `;
+
+    container.appendChild(newQuestion);
+    totalFormsInput.value = formCount + 1;
+  });
+
+  // Функция для сохранения вопроса
+  document.getElementById('questions-container').addEventListener('click', function(event) {
+    if (event.target.classList.contains('save-question')) {
+      const questionCard = event.target.closest('.question-card');
+      const inputs = questionCard.querySelectorAll('input, textarea, select');
+      inputs.forEach(input => {
+        input.disabled = true;
+      });
+      event.target.style.display = 'none';
+      questionCard.querySelector('.edit-question').style.display = 'inline-block';
+    }
+
+    if (event.target.classList.contains('edit-question')) {
+      const questionCard = event.target.closest('.question-card');
+      const inputs = questionCard.querySelectorAll('input, textarea, select');
+      inputs.forEach(input => {
+        input.disabled = false;
+      });
+      event.target.style.display = 'none';
+      questionCard.querySelector('.save-question').style.display = 'inline-block';
+    }
+  });
+});
+
+</script>
+
+<style>
+.question-card {
+  border: 1px solid #dee2e6;
+  border-radius: 0.25rem;
+}
+.option-form {
+  padding: 0.5rem;
+  background-color: #f8f9fa;
+  border-radius: 0.25rem;
+}
+</style>
+{% endblock %}

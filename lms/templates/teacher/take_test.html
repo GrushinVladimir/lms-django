@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h2>Пройти тест: {{ assignment.material.title }}</h2>
+<form method="post">
+  {% csrf_token %}
+  {% for question in questions %}
+    <div class="card mb-4">
+      <div class="card-body">
+        <h5>{{ question.question_text }}</h5>
+        {% if question.question_type == 'single' or question.question_type == 'multiple' %}
+          {% for option in question.options.all %}
+            <div class="form-check">
+              <input class="form-check-input" type="checkbox" name="question_{{ question.id }}" value="{{ option.id }}" id="option_{{ option.id }}">
+              <label class="form-check-label" for="option_{{ option.id }}">
+                {{ option.option_text }}
+              </label>
+            </div>
+          {% endfor %}
+        {% elif question.question_type == 'text' %}
+          <textarea name="question_{{ question.id }}" class="form-control" placeholder="Ваш ответ"></textarea>
+        {% endif %}
+      </div>
+    </div>
+  {% endfor %}
+  <button type="submit" class="btn btn-primary">Отправить</button>
+</form>
+{% endblock %}

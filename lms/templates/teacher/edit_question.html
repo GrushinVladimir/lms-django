@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<h2>Редактирование вопроса</h2>
+<form method="post">
+  {% csrf_token %}
+  {{ form.as_p }}
+  
+  <h4>Варианты ответов:</h4>
+  {{ formset.management_form }}
+  {% for option_form in formset %}
+    <div class="card mb-2">
+      <div class="card-body">
+        {{ option_form.as_p }}
+      </div>
+    </div>
+  {% endfor %}
+  
+  <button type="submit" class="btn btn-primary">Сохранить</button>
+</form>
+{% endblock %}
