@@ -20,6 +20,9 @@ class UserProfiles(models.Model):
     def __str__(self):
         return f"{self.get_user_type_display()}: {self.user.username}"
 
+
+# Если пользователь создан (created=True), создается связанный профиль UserProfiles с соответствующим типом пользователя.
+# Если пользователь обновлен (created=False), сохраняется существующий профиль.
 @receiver(post_save, sender=User)
 def create_or_update_user_profile(sender, instance, created, **kwargs):
     if created:

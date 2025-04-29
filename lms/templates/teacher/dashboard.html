@@ -1,14 +1,26 @@
-{% extends "base.html" %}
+{% extends 'base.html' %}
 
 {% block content %}
-<h1>Панель преподавателя</h1>
-<div class="courses">
+  <h1>Панель преподавателя</h1>
+  <h2>Добро пожаловать, {{ user.username }}!</h2>
+  <h3>Ваши курсы:</h3>
+  {% if courses %}
+  <ul>
     {% for course in courses %}
-    <div class="course-card">
-        <h2>{{ course.name }}</h2>
-        <p>{{ course.description }}</p>
-        <a href="{% url 'course_detail' course.id %}" class="btn">Управление курсом</a>
-    </div>
+      <li>{{ course.name }}</li>
     {% endfor %}
-</div>
+  </ul>
+{% else %}
+  <p>У вас нет доступных курсов</p>
+{% endif %}
+  <a href="{% url 'create_course' %}">Создать курс</a>
+  <ul>
+    {% for course in courses %}
+      <li>
+        <a href="{% url 'course_detail' course.id %}">{{ course.name }}</a>
+        <a href="{% url 'edit_course' course.id %}">Редактировать</a>
+        <a href="{% url 'delete_course' course.id %}">Удалить</a>
+      </li>
+    {% endfor %}
+  </ul>
 {% endblock %}

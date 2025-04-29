@@ -1,0 +1,19 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  <h1>{{ material.title }}</h1>
+  <p>{{ material.content }}</p>
+  <a href="{% url 'edit_material' material.id %}">Редактировать материал</a>
+  <a href="{% url 'delete_material' material.id %}">Удалить материал</a>
+  <a href="{% url 'create_assignment' material.id %}">Добавить задание</a>
+  <h2>Задания:</h2>
+  <ul>
+    {% for assignment in material.assignment_set.all %}
+      <li>
+        <a href="{% url 'edit_assignment' assignment.id %}">{{ assignment.material.title }}</a>
+        <a href="{% url 'edit_assignment' assignment.id %}">Редактировать</a>
+        <a href="{% url 'delete_assignment' assignment.id %}">Удалить</a>
+      </li>
+    {% endfor %}
+  </ul>
+{% endblock %}

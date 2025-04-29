@@ -1,0 +1,10 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  <h1>Сдача: {{ submission.assignment.material.title }}</h1>
+  <p>Статус: {{ submission.get_status_display }}</p>
+  {% if submission.score %}
+    <p>Оценка: {{ submission.score }}</p>
+    <p>Обратная связь: {{ submission.feedback }}</p>
+  {% endif %}
+{% endblock %}

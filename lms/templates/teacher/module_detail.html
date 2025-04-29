@@ -1,0 +1,16 @@
+{% extends 'base.html' %}
+
+{% block content %}
+  <h1>{{ module.title }}</h1>
+  <a href="{% url 'create_material' module.id %}">Добавить материал</a>
+  <h2>Материалы:</h2>
+  <ul>
+    {% for material in materials %}
+      <li>
+        <a href="{% url 'material_detail' material.id %}">{{ material.title }}</a>
+        <a href="{% url 'edit_material' material.id %}">Редактировать</a>
+        <a href="{% url 'delete_material' material.id %}">Удалить</a>
+      </li>
+    {% endfor %}
+  </ul>
+{% endblock %}

@@ -1,0 +1,8 @@
+git init
+git config --global user.email "pr.mgok@mail.ru"
+git config --global user.name "GrushinVladimir"  
+git add .     
+git commit -m "Initial commit"    
+git remote add origin https://github.com/GrushinVladimir/lms-django.g
+git push -u origin main
+git branch
