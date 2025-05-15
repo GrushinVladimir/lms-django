@@ -140,15 +140,40 @@ TINYMCE_DEFAULT_CONFIG = {
         table code lists fullscreen insertdatetime nonbreaking
         contextmenu directionality searchreplace wordcount visualblocks
         visualchars code fullscreen autolink lists charmap print hr
-        anchor pagebreak
+        anchor pagebreak imagetools
     ''',
     'toolbar1': '''
         fullscreen preview bold italic underline | fontselect,
         fontsizeselect | forecolor backcolor | alignleft alignright |
         aligncenter alignjustify | indent outdent | bullist numlist table |
-        | link image media | codesample |
+        | link image media | codesample | imagetools
     ''',
     'contextmenu': 'formats | link image',
     'menubar': True,
     'statusbar': True,
+    'images_upload_url': 'upload_image/',  # URL для загрузки изображений на сервер
+    'images_upload_handler': '''
+        function (blobInfo, success, failure) {
+            var xhr, formData;
+            xhr = new XMLHttpRequest();
+            xhr.withCredentials = false;
+            xhr.open('POST', 'upload_image/');
+            xhr.onload = function() {
+                var json;
+                if (xhr.status != 200) {
+                    failure('HTTP Error: ' + xhr.status);
+                    return;
+                }
+                json = JSON.parse(xhr.responseText);
+                if (!json || typeof json.location != 'string') {
+                    failure('Invalid JSON: ' + xhr.responseText);
+                    return;
+                }
+                success(json.location);
+            };
+            formData = new FormData();
+            formData.append('file', blobInfo.blob(), blobInfo.filename());
+            xhr.send(formData);
+        }
+    ''',
 }
