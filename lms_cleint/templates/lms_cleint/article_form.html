@@ -1,0 +1,56 @@
+{% extends 'lms_cleint/base.html' %}
+{% block content %}
+<h2>Создание статьи для главы: {{ chapter.name }}</h2>
+
+<form method="post">
+    {% csrf_token %}
+    <div class="mb-3">
+        {{ form.title.label_tag }}
+        {{ form.title }}
+    </div>
+    <div class="mb-3">
+        {{ form.content.label_tag }}
+        {{ form.content }}
+    </div>
+    <button type="submit" class="btn btn-primary">Сохранить</button>
+    <a href="{% url 'chapter_detail' chapter.id %}" class="btn btn-secondary">Отмена</a>
+</form>
+
+{% endblock %}
+
+{% block extra_js %}
+<!-- Подключаем TinyMCE -->
+<script src="https://cdn.tiny.cloud/1/ivfyh95a5l3oevg2u1nuhlto2mdgce6urwg0mi2knkuu1zu1/tinymce/5/tinymce.min.js" referrerpolicy="origin"></script>
+
+<script>
+tinymce.init({
+    selector: 'textarea',
+    language: 'ru',  // Устанавливаем русский язык
+    plugins: 'advlist autolink lists link image charmap print preview hr anchor pagebreak',
+    toolbar_mode: 'floating',
+    images_upload_url: '/upload_image/',  // Используйте абсолютный путь
+    images_upload_handler: function (blobInfo, success, failure) {
+        var xhr, formData;
+        xhr = new XMLHttpRequest();
+        xhr.withCredentials = false;
+        xhr.open('POST', '/upload_image/');  // Используйте абсолютный путь
+        xhr.onload = function() {
+            var json;
+            if (xhr.status != 200) {
+                failure('HTTP Error: ' + xhr.status);
+                return;
+            }
+            json = JSON.parse(xhr.responseText);
+            if (!json || typeof json.location != 'string') {
+                failure('Invalid JSON: ' + xhr.responseText);
+                return;
+            }
+            success(json.location);
+        };
+        formData = new FormData();
+        formData.append('file', blobInfo.blob(), blobInfo.filename());
+        xhr.send(formData);
+    }
+});
+</script>
+{% endblock %}

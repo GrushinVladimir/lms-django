@@ -1,0 +1,14 @@
+{% extends 'lms_cleint/base.html' %}
+{% block content %}
+<h2>{{ article.title }}</h2>
+<div class="mb-3">
+    <small class="text-muted">Создано: {{ article.created_at|date:"d.m.Y H:i" }}</small>
+    {% if article.updated_at != article.created_at %}
+    <small class="text-muted"> | Обновлено: {{ article.updated_at|date:"d.m.Y H:i" }}</small>
+    {% endif %}
+</div>
+<div class="article-content">
+    {{ article.content|safe }}
+</div>
+<a href="{% url 'chapter_detail' article.chapter.id %}" class="btn btn-secondary mt-3">Назад к главе</a>
+{% endblock %}
