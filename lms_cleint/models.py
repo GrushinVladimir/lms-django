@@ -100,3 +100,50 @@ class Article(models.Model):
 
     def __str__(self):
         return self.title
+
+
+class Test(models.Model):
+    chapter = models.ForeignKey(Chapter, on_delete=models.CASCADE, related_name='tests')
+    title = models.CharField(max_length=200)
+    description = models.TextField(blank=True)
+    position = models.PositiveIntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['position']
+
+    def __str__(self):
+        return self.title
+
+class Question(models.Model):
+    test = models.ForeignKey(Test, on_delete=models.CASCADE, related_name='questions')
+    text = models.TextField()
+    question_type = models.CharField(
+        max_length=20,
+        choices=[
+            ('single', 'Один правильный ответ'),
+            ('multiple', 'Несколько правильных ответов'),
+            ('text', 'Текстовый ответ')
+        ],
+        default='single'
+    )
+    position = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ['position']
+
+    def __str__(self):
+        return f"{self.text[:50]}..."
+
+class Answer(models.Model):
+    question = models.ForeignKey(Question, on_delete=models.CASCADE, related_name='answers')
+    text = models.TextField()
+    is_correct = models.BooleanField(default=False)
+    position = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ['position']
+
+    def __str__(self):
+        return f"{self.text[:50]}..."

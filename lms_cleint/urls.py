@@ -24,4 +24,15 @@ urlpatterns = [
     path('article/<int:article_id>/delete/', views.delete_article, name='delete_article'),
     path('chapter/<int:chapter_id>/update_materials_order/', views.update_materials_order, name='update_materials_order'),
 
+    path('test/edit/<int:test_id>/', views.edit_test, name='edit_test'),
+    path('question/add/<int:test_id>/', views.add_question, name='add_question'),
+    path('question/edit/<int:question_id>/', views.edit_question, name='edit_question'),
+
+    path('test/create/<int:chapter_id>/', views.create_test, name='create_test'),
+    path('test/delete/<int:test_id>/', views.delete_test, name='delete_test'),
+    path('question/delete/<int:question_id>/', views.delete_question, name='delete_question'),
+    path('test/view/<int:test_id>/', views.view_test, name='view_test'),
+    path('test/submit/<int:test_id>/', views.submit_test, name='submit_test'),
+
+
 ]

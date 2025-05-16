@@ -1,0 +1,67 @@
+{% extends 'lms_cleint/base.html' %}
+{% block content %}
+<div class="container">
+    <h2>Редактирование вопроса</h2>
+    
+    <form method="post">
+        {% csrf_token %}
+        <div class="card mb-4">
+            <div class="card-body">
+                <div class="mb-3">
+                    {{ form.text.label_tag }}
+                    {{ form.text }}
+                </div>
+                <div class="mb-3">
+                    {{ form.question_type.label_tag }}
+                    {{ form.question_type }}
+                </div>
+            </div>
+        </div>
+        
+        {% if form.instance.question_type != 'text' %}
+        <h3 class="mb-3">Варианты ответов</h3>
+        
+        {{ formset.management_form }}
+        <div id="answers-container">
+            {% for form in formset %}
+            <div class="card mb-3 answer-item">
+                <div class="card-body">
+                    {{ form.id }}
+                    <div class="mb-3">
+                        {{ form.text.label_tag }}
+                        {{ form.text }}
+                    </div>
+                    <div class="mb-3">
+                        {% if form.instance.question.question_type == 'single' %}
+                            {{ form.is_correct.label_tag }}
+                            {{ form.is_correct }}
+                        {% else %}
+                            <div class="form-check">
+                                {{ form.is_correct }}
+                                {{ form.is_correct.label_tag }}
+                            </div>
+                        {% endif %}
+                    </div>
+                    {% if formset.can_delete %}
+                        <div class="form-check">
+                            {{ form.DELETE }}
+                            {{ form.DELETE.label_tag }}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        
+        <button type="submit" class="btn btn-primary">Сохранить вопрос</button>
+        <a href="{% url 'edit_test' test.id %}" class="btn btn-secondary">Отмена</a>
+    </form>
+</div>
+
+<style>
+.answer-item {
+    background-color: #f8f9fa;
+}
+</style>
+{% endblock %}

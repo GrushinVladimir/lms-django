@@ -1,0 +1,19 @@
+{% extends 'lms_cleint/base.html' %}
+{% block content %}
+<h2>Создание теста для главы: {{ chapter.name }}</h2>
+
+<form method="post">
+    {% csrf_token %}
+    <div class="mb-3">
+        {{ form.title.label_tag }}
+        {{ form.title }}
+    </div>
+    <div class="mb-3">
+        {{ form.description.label_tag }}
+        {{ form.description }}
+    </div>
+    <button type="submit" class="btn btn-primary">Создать тест</button>
+    <a href="{% url 'chapter_detail' chapter.id %}" class="btn btn-secondary">Отмена</a>
+</form>
+
+{% endblock %}

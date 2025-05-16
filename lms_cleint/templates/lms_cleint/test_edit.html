@@ -1,0 +1,72 @@
+{% extends 'lms_cleint/base.html' %}
+{% block content %}
+<div class="container">
+    <h2>Редактирование теста: {{ test.title }}</h2>
+    
+    <form method="post">
+        {% csrf_token %}
+        <div class="card mb-4">
+            <div class="card-body">
+                <div class="mb-3">
+                    {{ form.title.label_tag }}
+                    {{ form.title }}
+                </div>
+                <div class="mb-3">
+                    {{ form.description.label_tag }}
+                    {{ form.description }}
+                </div>
+            </div>
+        </div>
+        
+        <h3 class="mb-3">Вопросы теста</h3>
+        
+        {{ question_formset.management_form }}
+        <div id="questions-container">
+            {% for form in question_formset %}
+            <div class="card mb-3 question-item">
+                <div class="card-body">
+                    {{ form.id }}
+                    <div class="mb-3">
+                        {{ form.text.label_tag }}
+                        {{ form.text }}
+                    </div>
+                    <div class="mb-3">
+                        {{ form.question_type.label_tag }}
+                        {{ form.question_type }}
+                    </div>
+                    
+                    {% if form.instance.pk %}
+                        <div class="answers-section mb-3">
+                            <h5>Варианты ответов</h5>
+                            <a href="{% url 'edit_question' form.instance.id %}" class="btn btn-sm btn-primary mb-2">
+                                Редактировать варианты ответов
+                            </a>
+                            <ul class="list-group">
+                                {% for answer in form.instance.answers.all %}
+                                <li class="list-group-item">
+                                    {{ answer.text }}
+                                    {% if answer.is_correct %}
+                                        <span class="badge bg-success">Правильный</span>
+                                    {% endif %}
+                                </li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    {% endif %}
+                    
+                    {% if question_formset.can_delete %}
+                        <div class="form-check">
+                            {{ form.DELETE }}
+                            {{ form.DELETE.label_tag }}
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        
+        <button type="submit" class="btn btn-primary">Сохранить тест</button>
+        <a href="{% url 'chapter_detail' test.chapter.id %}" class="btn btn-secondary">Отмена</a>
+    </form>
+</div>
+{% endblock %}

@@ -1,4 +1,27 @@
 {% extends 'lms_cleint/base.html' %}
+{% block extra_css %}
+<style>
+    .drag-handle {
+        cursor: move;
+        color: #6c757d; /* Серый цвет */
+        padding: 0 10px;
+        margin-left: 10px;
+        user-select: none; /* Предотвращает выделение текста при перетаскивании */
+    }
+    .list-group-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .material-content {
+        flex-grow: 1;
+    }
+    .material-actions {
+        display: flex;
+        align-items: center;
+    }
+</style>
+{% endblock %}
 {% block content %}
 <h2>Глава: {{ chapter.name }}</h2>
 
@@ -10,47 +33,63 @@
     <a href="{% url 'create_article' chapter.id %}" class="btn btn-success">
         Создать статью
     </a>
+    <a href="{% url 'create_test' chapter.id %}" class="btn btn-info">
+        Создать тест
+    </a>
 </div>
 
 <!-- Объединенный список материалов -->
+<!-- Обновим список материалов -->
 <ul id="materials-list" class="list-group" data-chapter-id="{{ chapter.id }}">
     {% for material in materials %}
-    <li class="list-group-item" data-id="{{ material.id }}" data-type="{% if material.file %}file{% else %}article{% endif %}">
-        <div>
+    <li class="list-group-item" 
+        data-id="{% if material.material_type == 'file' %}file_{% elif material.material_type == 'article' %}article_{% else %}test_{% endif %}{{ material.id }}" 
+        data-type="{{ material.material_type }}">
+        <div class="material-content">
             <strong>
-                {% if material.file %}
+                {% if material.material_type == 'file' %}
                     {{ material.display_name }}
+                {% elif material.material_type == 'article' %}
+                    {{ material.title }}
                 {% else %}
                     {{ material.title }}
                 {% endif %}
             </strong>
-            <span class="badge {% if material.file %}bg-primary{% else %}bg-success{% endif %}">
-                {% if material.file %}
-                    {% if material.is_pdf %}
-                    PDF
-                    {% elif material.is_word %}
-                    Word
-                    {% else %}
-                    Файл
-                    {% endif %}
+            <span class="badge 
+                {% if material.material_type == 'file' %}bg-primary
+                {% elif material.material_type == 'article' %}bg-success
+                {% else %}bg-info{% endif %}">
+                {% if material.material_type == 'file' %}
+                    {% if material.is_pdf %}PDF
+                    {% elif material.is_word %}Word
+                    {% else %}Файл{% endif %}
+                {% elif material.material_type == 'article' %}
+                    Статья
                 {% else %}
-                Статья
+                    Тест
                 {% endif %}
             </span>
-            <div class="btn-group float-end">
-                {% if material.file %}
+        </div>
+        <div class="material-actions">
+            <div class="btn-group">
+                {% if material.material_type == 'file' %}
                     {% if material.is_pdf %}
                     <a href="{{ material.file.url }}" class="btn btn-sm btn-info" target="_blank">Просмотреть</a>
                     {% else %}
                     <a href="{{ material.file.url }}" class="btn btn-sm btn-info" download>Скачать</a>
                     {% endif %}
                     <a href="{% url 'delete_file' material.id %}" class="btn btn-sm btn-danger">Удалить</a>
-                {% else %}
+                {% elif material.material_type == 'article' %}
                     <a href="{% url 'article_detail' material.id %}" class="btn btn-sm btn-info">Просмотреть</a>
                     <a href="{% url 'edit_article' material.id %}" class="btn btn-sm btn-warning">Редактировать</a>
                     <a href="{% url 'delete_article' material.id %}" class="btn btn-sm btn-danger">Удалить</a>
+                {% else %}
+                    <a href="{% url 'view_test' material.id %}" class="btn btn-sm btn-info">Просмотреть</a>
+                    <a href="{% url 'edit_test' material.id %}" class="btn btn-sm btn-warning">Редактировать</a>
+                    <a href="{% url 'delete_test' material.id %}" class="btn btn-sm btn-danger">Удалить</a>
                 {% endif %}
             </div>
+            <div class="drag-handle">⋮</div>
         </div>
     </li>
     {% empty %}
@@ -100,12 +139,13 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     var materialsList = document.getElementById('materials-list');
-    var chapterId = materialsList.dataset.chapterId; // Получаем chapterId из атрибута data
+    var chapterId = materialsList.dataset.chapterId;
 
-    if (materialsList) { // Проверяем существование элемента
+    if (materialsList) {
         new Sortable(materialsList, {
             animation: 150,
             ghostClass: 'sortable-ghost',
+            handle: '.drag-handle', // Указываем класс элемента, за который можно тянуть
             onEnd: function (evt) {
                 var order = Array.from(materialsList.children).map(function(item) {
                     return item.dataset.id;
@@ -129,16 +169,26 @@ document.addEventListener('DOMContentLoaded', function() {
                 .then(data => {
                     if (data.status === 'success') {
                         console.log('Order updated successfully');
+                        showToast('Порядок материалов сохранён');
                     } else {
                         console.error('Error updating order:', data.message);
+                        showToast('Ошибка при сохранении порядка', 'error');
                     }
                 })
                 .catch(error => {
                     console.error('Error:', error);
+                    showToast('Ошибка при сохранении порядка', 'error');
                 });
             }
         });
     }
 });
+
+// Функция для показа уведомлений
+function showToast(message, type = 'success') {
+    // Реализация зависит от вашей системы уведомлений
+    // Например, можно использовать Bootstrap Toast или просто alert
+    alert(message);
+}
 </script>
 {% endblock %}

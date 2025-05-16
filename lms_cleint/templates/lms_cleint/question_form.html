@@ -1,0 +1,100 @@
+{% extends 'lms_cleint/base.html' %}
+{% block content %}
+<h2>Добавление вопроса к тесту: {{ test.title }}</h2>
+
+<form method="post" id="question-form">
+    {% csrf_token %}
+    <div class="mb-3">
+        {{ form.text.label_tag }}
+        {{ form.text }}
+    </div>
+    <div class="mb-3">
+        {{ form.question_type.label_tag }}
+        {{ form.question_type }}
+    </div>
+    
+    <div id="answers-section" style="display: none;">
+        <h4>Варианты ответов</h4>
+        <div id="answers-container">
+            <!-- Варианты ответов будут добавляться здесь динамически -->
+        </div>
+        <button type="button" id="add-answer" class="btn btn-sm btn-success mt-2">
+            Добавить вариант ответа
+        </button>
+    </div>
+    
+    <button type="submit" class="btn btn-primary">Сохранить вопрос</button>
+    <a href="{% url 'edit_test' test.id %}" class="btn btn-secondary">Отмена</a>
+</form>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const questionType = document.querySelector('#id_question_type');
+    const answersSection = document.querySelector('#answers-section');
+    
+    // Показываем/скрываем секцию ответов в зависимости от типа вопроса
+    function toggleAnswersSection() {
+        if (questionType.value === 'text') {
+            answersSection.style.display = 'none';
+        } else {
+            answersSection.style.display = 'block';
+        }
+    }
+    
+    // Обработчик изменения типа вопроса
+    questionType.addEventListener('change', toggleAnswersSection);
+    
+    // Инициализация при загрузке
+    toggleAnswersSection();
+    
+    // Добавление нового варианта ответа
+    document.querySelector('#add-answer').addEventListener('click', function() {
+        const container = document.querySelector('#answers-container');
+        const index = container.children.length;
+        
+        const answerDiv = document.createElement('div');
+        answerDiv.className = 'answer-item mb-2 p-2 border rounded';
+        answerDiv.innerHTML = `
+            <div class="form-group">
+                <label>Текст ответа:</label>
+                <input type="text" name="answers[${index}][text]" class="form-control" required>
+            </div>
+            <div class="form-check">
+                <input type="checkbox" name="answers[${index}][is_correct]" class="form-check-input">
+                <label class="form-check-label">Правильный ответ</label>
+            </div>
+            <button type="button" class="btn btn-sm btn-danger remove-answer">Удалить</button>
+        `;
+        
+        container.appendChild(answerDiv);
+        
+        // Обработчик удаления ответа
+        answerDiv.querySelector('.remove-answer').addEventListener('click', function() {
+            container.removeChild(answerDiv);
+            reindexAnswers();
+        });
+    });
+    
+    // Переиндексация ответов после удаления
+    function reindexAnswers() {
+        const items = document.querySelectorAll('.answer-item');
+        items.forEach((item, index) => {
+            const textInput = item.querySelector('input[type="text"]');
+            const checkbox = item.querySelector('input[type="checkbox"]');
+            
+            textInput.name = `answers[${index}][text]`;
+            checkbox.name = `answers[${index}][is_correct]`;
+        });
+    }
+});
+</script>
+
+<style>
+.answer-item {
+    background-color: #f8f9fa;
+}
+.remove-answer {
+    margin-top: 5px;
+}
+</style>
+{% endblock %}

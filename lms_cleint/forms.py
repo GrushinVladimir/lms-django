@@ -2,7 +2,7 @@ from django import forms
 from tinymce.widgets import TinyMCE
 from .models import (
     Course, Subject, StudentGroup, TeacherProfile,
-    Chapter, ChapterFile, Article
+    Chapter, ChapterFile, Article, Test, Question, Answer
 )
 
 class CourseForm(forms.ModelForm):
@@ -72,3 +72,42 @@ class ArticleForm(forms.ModelForm):
         widgets = {
             'content': TinyMCE(attrs={'cols': 80, 'rows': 30}),
         }
+
+class TestForm(forms.ModelForm):
+    class Meta:
+        model = Test
+        fields = ['title', 'description']
+        widgets = {
+            'description': forms.Textarea(attrs={'rows': 3, 'class': 'form-control'}),
+        }
+
+class QuestionForm(forms.ModelForm):
+    class Meta:
+        model = Question
+        fields = ['text', 'question_type']
+        widgets = {
+            'text': forms.Textarea(attrs={'rows': 3, 'class': 'form-control'}),
+            'question_type': forms.Select(attrs={
+                'class': 'form-select',
+                'onchange': "toggleAnswerFields(this)"
+            }),
+        }
+
+class AnswerForm(forms.ModelForm):
+    class Meta:
+        model = Answer
+        fields = ['text', 'is_correct']
+        widgets = {
+            'text': forms.TextInput(attrs={'class': 'form-control'}),
+            'is_correct': forms.RadioSelect(choices=[(True, 'Правильный ответ')]),
+        }
+
+QuestionFormSet = forms.inlineformset_factory(
+    Test, Question, form=QuestionForm, 
+    extra=1, can_delete=True
+)
+
+AnswerFormSet = forms.inlineformset_factory(
+    Question, Answer, form=AnswerForm,
+    extra=1, can_delete=True
+)
