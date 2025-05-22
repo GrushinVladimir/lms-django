@@ -2,7 +2,7 @@
 {% block content %}
 <div class="container">
     <h2>Редактирование теста: {{ test.title }}</h2>
-    
+
     <form method="post" id="test-form">
         {% csrf_token %}
         <div class="card mb-4">
@@ -17,9 +17,9 @@
                 </div>
             </div>
         </div>
-        
+
         <h3 class="mb-3">Вопросы теста</h3>
-        
+
         {{ question_formset.management_form }}
         <div id="questions-container">
             {% for form in question_formset %}
@@ -37,11 +37,20 @@
                             <option value="">Выберите тип вопроса</option>
                             <option value="single" class="underline-equals" data-value="{% if form.question_type.value == 'single' %}selected{% endif %}">Один правильный ответ</option>
                             <option value="multiple" class="underline-equals" data-value="{% if form.question_type.value == 'multiple' %}selected{% endif %}">Несколько правильных ответов</option>
-                            <option value="text" class="underline-equals" data-value="{% if form.question_type.value == 'text' %}selected{% endif %}">Текстовый ответ</option>                 
+                            <option value="text" class="underline-equals" data-value="{% if form.question_type.value == 'text' %}selected{% endif %}">Текстовый ответ</option>
                         </select>
                     </div>
-
-                    <div class="answers-section mb-3"data-value="{% if form.question_type.value in 'single,multiple' %}block{% else %}none{% endif %}">
+                    <div class="mb-3" id="correct-answer-section" style="display: none;">
+                        <label for="correct_answer">Правильный ответ:</label>
+                        <textarea name="questions-{{ forloop.counter0 }}-correct_answer" class="form-control" rows="3"></textarea>
+                        <div class="form-check mt-2">
+                            <input type="checkbox" name="questions-{{ forloop.counter0 }}-ai_check" id="questions-{{ forloop.counter0 }}-ai_check" class="form-check-input" checked>
+                            <label class="form-check-label" for="questions-{{ forloop.counter0 }}-ai_check">
+                                Использовать AI для проверки
+                            </label>
+                        </div>
+                    </div>
+                    <div class="answers-section mb-3" data-value="{% if form.question_type.value in 'single,multiple' %}block{% else %}none{% endif %}">
                         <h5>Варианты ответов</h5>
                         <div class="answers-list">
                             {% if form.instance.pk %}
@@ -49,13 +58,13 @@
                                 <div class="answer-item mb-2 p-2 border rounded">
                                     <div class="form-group">
                                         <label>Текст ответа:</label>
-                                        <input type="text" name="questions-{{ forloop.parentloop.counter0 }}-answers-{{ answer.id }}-text" 
+                                        <input type="text" name="questions-{{ forloop.parentloop.counter0 }}-answers-{{ answer.id }}-text"
                                                class="form-control" value="{{ answer.text }}" required>
                                     </div>
                                     <div class="form-check">
-                                        <input type="{% if form.question_type.value == 'single' %}radio{% else %}checkbox{% endif %}" 
-                                               name="{% if form.question_type.value == 'single' %}questions-{{ forloop.parentloop.counter0 }}-correct-answer{% else %}questions-{{ forloop.parentloop.counter0 }}-answers-{{ answer.id }}-is_correct{% endif %}" 
-                                               value="{{ answer.id }}" 
+                                        <input type="{% if form.question_type.value == 'single' %}radio{% else %}checkbox{% endif %}"
+                                               name="{% if form.question_type.value == 'single' %}questions-{{ forloop.parentloop.counter0 }}-correct-answer{% else %}questions-{{ forloop.parentloop.counter0 }}-answers-{{ answer.id }}-is_correct{% endif %}"
+                                               value="{{ answer.id }}"
                                                class="form-check-input"
                                                {% if answer.is_correct %}checked{% endif %}>
                                         <label class="form-check-label">Правильный ответ</label>
@@ -65,10 +74,10 @@
                                 {% endfor %}
                             {% endif %}
                         </div>
-                        
+
                         <button type="button" class="btn btn-sm btn-success add-answer" data-question-id="{{ form.instance.pk|default:'new' }}" data-form-index="{{ forloop.counter0 }}">Добавить вариант</button>
                     </div>
-                    
+
                     <div class="d-flex justify-content-between">
                         {% if form.instance.pk %}
                         <div class="form-check">
@@ -82,7 +91,7 @@
             </div>
             {% endfor %}
         </div>
-        
+
         <div class="d-flex justify-content-between mt-4">
             <button type="button" id="add-question" class="btn btn-success">Добавить вопрос</button>
             <div>
@@ -94,9 +103,174 @@
 </div>
 
 <script>
-// Оставьте JavaScript код из test_create.html без изменений
 document.addEventListener('DOMContentLoaded', function() {
-    // ... (весь JavaScript код из test_create.html)
+    // Функция для переключения полей ответов
+    function toggleAnswerFields(selectElement) {
+        const questionItem = selectElement.closest('.question-item');
+        const answersSection = questionItem.querySelector('.answers-section');
+        const addAnswerBtn = questionItem.querySelector('.add-answer');
+        const correctAnswerSection = questionItem.querySelector('#correct-answer-section');
+
+        if (selectElement.value === 'text') {
+            answersSection.style.display = 'none';
+            addAnswerBtn.style.display = 'none';
+            correctAnswerSection.style.display = 'block';
+        } else {
+            answersSection.style.display = 'block';
+            addAnswerBtn.style.display = 'block';
+            correctAnswerSection.style.display = 'none';
+        }
+    }
+
+    // Добавление нового вопроса
+    document.querySelector('#add-question').addEventListener('click', function() {
+        const formCount = parseInt(document.querySelector('#id_questions-TOTAL_FORMS').value);
+        const container = document.querySelector('#questions-container');
+
+        document.querySelector('#id_questions-TOTAL_FORMS').value = formCount + 1;
+
+        const newQuestion = document.createElement('div');
+        newQuestion.className = 'card mb-3 question-item';
+        newQuestion.innerHTML = `
+            <div class="card-body">
+                <input type="hidden" name="questions-${formCount}-id" id="id_questions-${formCount}-id">
+                <div class="mb-3">
+                    <label for="id_questions-${formCount}-text">Текст вопроса:</label>
+                    <textarea name="questions-${formCount}-text" class="form-control" id="id_questions-${formCount}-text" rows="3" required></textarea>
+                </div>
+                <div class="mb-3">
+                    <label for="id_questions-${formCount}-question_type">Тип вопроса:</label>
+                    <select name="questions-${formCount}-question_type" class="form-select" id="id_questions-${formCount}-question_type" onchange="toggleAnswerFields(this)">
+                        <option value="">Выберите тип вопроса</option>
+                        <option value="single">Один правильный ответ</option>
+                        <option value="multiple">Несколько правильных ответов</option>
+                        <option value="text">Текстовый ответ</option>
+                    </select>
+                </div>
+                <div class="mb-3" id="correct-answer-section" style="display: none;">
+                    <label for="correct_answer">Правильный ответ:</label>
+                    <textarea name="questions-${formCount}-correct_answer" class="form-control" rows="3"></textarea>
+                    <div class="form-check mt-2">
+                        <input type="checkbox" name="questions-${formCount}-ai_check" id="questions-${formCount}-ai_check" class="form-check-input" checked>
+                        <label class="form-check-label" for="questions-${formCount}-ai_check">
+                            Использовать AI для проверки
+                        </label>
+                    </div>
+                </div>
+                <div class="answers-section mb-3" style="display: none;">
+                    <h5>Варианты ответов</h5>
+                    <div class="answers-list"></div>
+                    <button type="button" class="btn btn-sm btn-success add-answer" data-form-num="${formCount}" style="display: none;">Добавить вариант</button>
+                </div>
+                <div class="d-flex justify-content-between">
+                    <button type="button" class="btn btn-sm btn-primary save-question">Сохранить вопрос</button>
+                    <button type="button" class="btn btn-sm btn-danger remove-question">Удалить вопрос</button>
+                </div>
+            </div>
+        `;
+
+        container.appendChild(newQuestion);
+
+        // Инициализация нового вопроса
+        const select = newQuestion.querySelector('select[name$="-question_type"]');
+        select.addEventListener('change', function() {
+            toggleAnswerFields(this);
+        });
+
+        // Добавляем обработчик для кнопки добавления ответа
+        const addBtn = newQuestion.querySelector('.add-answer');
+        addBtn.addEventListener('click', function() {
+            const formNum = this.getAttribute('data-form-num');
+            const answersList = this.previousElementSibling;
+            const answerCount = answersList.children.length;
+            const questionType = this.closest('.question-item').querySelector('select[name$="-question_type"]').value;
+
+            const newAnswer = document.createElement('div');
+            newAnswer.className = 'answer-item mb-2 p-2 border rounded';
+            newAnswer.innerHTML = `
+                <div class="form-group">
+                    <label>Текст ответа:</label>
+                    <input type="text" name="questions-${formNum}-answers-${answerCount}-text" class="form-control" required>
+                </div>
+                <div class="form-check">
+                    <input type="${questionType === 'single' ? 'radio' : 'checkbox'}"
+                           name="questions-${formNum}-answers-${answerCount}-is_correct"
+                           value="true"
+                           class="form-check-input">
+                    <label class="form-check-label">Правильный ответ</label>
+                </div>
+                <button type="button" class="btn btn-sm btn-danger remove-answer">Удалить</button>
+            `;
+
+            answersList.appendChild(newAnswer);
+
+            // Обработчик удаления ответа
+            newAnswer.querySelector('.remove-answer').addEventListener('click', function() {
+                answersList.removeChild(newAnswer);
+            });
+        });
+
+        // Обработчик удаления вопроса
+        newQuestion.querySelector('.remove-question').addEventListener('click', function() {
+            container.removeChild(newQuestion);
+            // Уменьшаем счетчик форм
+            const totalForms = document.querySelector('#id_questions-TOTAL_FORMS');
+            totalForms.value = parseInt(totalForms.value) - 1;
+        });
+    });
+
+    // Инициализация существующих вопросов
+    document.querySelectorAll('.question-item').forEach(questionItem => {
+        const select = questionItem.querySelector('select[name$="-question_type"]');
+        if (select) {
+            toggleAnswerFields(select);
+
+            // Обработчик изменения типа вопроса
+            select.addEventListener('change', function() {
+                toggleAnswerFields(this);
+            });
+        }
+
+        // Обработчик добавления ответа для существующих вопросов
+        const addBtn = questionItem.querySelector('.add-answer');
+        if (addBtn) {
+            // Получаем formNum из имени поля вопроса
+            const questionFieldName = questionItem.querySelector('[name^="questions-"][name$="-text"]').name;
+            const formNum = questionFieldName.match(/questions-(\d+)-/)[1];
+            addBtn.setAttribute('data-form-num', formNum);
+
+            addBtn.addEventListener('click', function() {
+                const formNum = this.getAttribute('data-form-num');
+                const answersList = this.previousElementSibling;
+                const answerCount = answersList.children.length;
+                const questionType = this.closest('.question-item').querySelector('select[name$="-question_type"]').value;
+
+                const newAnswer = document.createElement('div');
+                newAnswer.className = 'answer-item mb-2 p-2 border rounded';
+                newAnswer.innerHTML = `
+                    <div class="form-group">
+                        <label>Текст ответа:</label>
+                        <input type="text" name="questions-${formNum}-answers-${answerCount}-text" class="form-control" required>
+                    </div>
+                    <div class="form-check">
+                        <input type="${questionType === 'single' ? 'radio' : 'checkbox'}"
+                               name="questions-${formNum}-answers-${answerCount}-is_correct"
+                               value="true"
+                               class="form-check-input">
+                        <label class="form-check-label">Правильный ответ</label>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-danger remove-answer">Удалить</button>
+                `;
+
+                answersList.appendChild(newAnswer);
+
+                // Обработчик удаления ответа
+                newAnswer.querySelector('.remove-answer').addEventListener('click', function() {
+                    answersList.removeChild(newAnswer);
+                });
+            });
+        }
+    });
 });
 </script>
 
@@ -119,5 +293,10 @@ document.addEventListener('DOMContentLoaded', function() {
 .add-answer {
     margin-top: 10px;
 }
+
+.underline-equals::after {
+        content: attr(data-value);
+        text-decoration: underline;
+    }
 </style>
 {% endblock %}

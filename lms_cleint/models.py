@@ -143,6 +143,7 @@ class Answer(models.Model):
     position = models.PositiveIntegerField(default=0)
     ai_check_enabled = models.BooleanField(default=True, help_text="Использовать AI для проверки текстовых ответов")
 
+
     class Meta:
         ordering = ['position']
 

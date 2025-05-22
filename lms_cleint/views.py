@@ -14,31 +14,58 @@ import os
 import json
 import numpy as np
 from sentence_transformers import SentenceTransformer
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def view_test_result(request, result_id):
     result = get_object_or_404(TestResult, pk=result_id)
     return render(request, 'lms_cleint/view_test_result.html', {'result': result})
 
-model = None
-if not settings.DEBUG:  # In development, you can avoid loading to save memory
-    model = SentenceTransformer('sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2')
+# Инициализация модели (уберите условие для DEBUG при тестировании)
+model = SentenceTransformer('sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2')
 
-def check_text_answer(user_answer, correct_answer):
-    """Compare text answers using Sentence Transformers"""
-    if not user_answer.strip():
-        return False
+def preprocess_text(text):
+    """Нормализация текста перед сравнением"""
+    if not text:
+        return ""
+    return text.lower().strip()
 
-    if model:
-        # Vectorize answers
+def check_text_similarity(user_answer, correct_answer):
+    """Сравнение текстов с помощью SentenceTransformer"""
+    try:
         emb_user = model.encode(user_answer)
         emb_correct = model.encode(correct_answer)
-        # Cosine similarity
         similarity = np.dot(emb_user, emb_correct) / (np.linalg.norm(emb_user) * np.linalg.norm(emb_correct))
-        return similarity > 0.65  # Threshold can be adjusted
-    else:
-        # Fallback for development
-        return user_answer.lower().strip() == correct_answer.lower().strip()
+        return similarity
+    except Exception as e:
+        logger.error(f"Ошибка при сравнении текстов: {e}")
+        return 0
+
+def check_text_answer(user_answer, correct_answer, ai_check_enabled=True):
+    """Проверка текстового ответа"""
+    user_answer = preprocess_text(user_answer)
+    correct_answer = preprocess_text(correct_answer)
+    
+    if not user_answer:
+        return False
+    
+    # Если ответы полностью совпадают
+    if user_answer == correct_answer:
+        return True
+    
+    # Если AI проверка отключена
+    if not ai_check_enabled:
+        return False
+    
+    # Проверка с помощью SentenceTransformer
+    similarity = check_text_similarity(user_answer, correct_answer)
+    logger.debug(f"Сравнение: '{user_answer}' vs '{correct_answer}' - схожесть: {similarity:.2f}")
+    
+    # Подберите оптимальный порог для вашей предметной области
+    return similarity > 0.60
+
     
 @login_required
 def submit_test(request, test_id):
@@ -48,17 +75,38 @@ def submit_test(request, test_id):
 
     if request.method == 'POST':
         for question in test.questions.all():
+            question_data = {
+                'question_id': question.id,
+                'question_text': question.text,
+                'is_correct': False,  # По умолчанию
+                'score': 0
+            }
+
             if question.question_type == 'text':
                 user_answer = request.POST.get(f'question_{question.id}', '').strip()
                 correct_answer_obj = question.answers.first()
+
                 if correct_answer_obj:
-                    correct_answer = correct_answer_obj.text
+                    is_correct = check_text_answer(
+                        user_answer,
+                        correct_answer_obj.text,
+                        correct_answer_obj.ai_check_enabled
+                    )
+                    question_data.update({
+                        'user_answer': user_answer,
+                        'correct_answer': correct_answer_obj.text,
+                        'is_correct': bool(is_correct),  # Убедитесь, что это bool
+                        'score': int(1 if is_correct else 0)  # Убедитесь, что это int
+                    })
                 else:
-                    correct_answer = ""  # Default or handle the case where there is no correct answer
-                is_correct = check_text_answer(user_answer, correct_answer)
-                score = 1 if is_correct else 0
+                    question_data.update({
+                        'user_answer': user_answer,
+                        'correct_answer': "",
+                        'is_correct': False,
+                        'score': 0
+                    })
             else:
-                # Handling choice selections
+                # Обработка вопросов с выбором
                 selected_answers = []
                 if question.question_type == 'single':
                     answer_id = request.POST.get(f'question_{question.id}')
@@ -71,25 +119,24 @@ def submit_test(request, test_id):
 
                 correct_answers = list(question.answers.filter(is_correct=True).values_list('id', flat=True))
                 is_correct = set(selected_answers) == set(correct_answers)
-                score = 1 if is_correct else 0
 
-            results.append({
-                'question_id': question.id,
-                'question_text': question.text,
-                'user_answer': user_answer if question.question_type == 'text' else selected_answers,
-                'correct_answer': correct_answer if question.question_type == 'text' else correct_answers,
-                'is_correct': is_correct,
-                'score': score
-            })
-            total_score += score
+                question_data.update({
+                    'user_answer': selected_answers,
+                    'correct_answer': correct_answers,
+                    'is_correct': bool(is_correct),  # Убедитесь, что это bool
+                    'score': int(1 if is_correct else 0)  # Убедитесь, что это int
+                })
 
-        # Save the result
+            results.append(question_data)
+            total_score += question_data['score']
+
+        # Сохраняем как JSON-совместимую структуру
         TestResult.objects.create(
             user=request.user,
             test=test,
             score=total_score,
             max_score=test.questions.count(),
-            details={'questions': results}
+            details={'questions': results}  # Django сам сериализует в JSON
         )
 
         return redirect('test_result', test_id=test.id)
@@ -103,9 +150,13 @@ def submit_test(request, test_id):
 def test_result(request, test_id):
     test = get_object_or_404(Test, pk=test_id)
     result = TestResult.objects.filter(test=test, user=request.user).latest('submitted_at')
-    correct_count = sum(1 for item in result.details['questions'] if item['is_correct'])
-    incorrect_count = len(result.details['questions']) - correct_count
-    correct_percent = (correct_count / len(result.details['questions'])) * 100 if result.details['questions'] else 0
+    
+    # Получаем детали результатов (уже десериализованные Django)
+    questions_data = result.details.get('questions', [])
+    
+    correct_count = sum(1 for item in questions_data if item['is_correct'])
+    incorrect_count = len(questions_data) - correct_count
+    correct_percent = (correct_count / len(questions_data)) * 100 if questions_data else 0
     incorrect_percent = 100 - correct_percent
 
     return render(request, 'lms_cleint/view_test_result.html', {
@@ -115,9 +166,9 @@ def test_result(request, test_id):
         'correct_count': correct_count,
         'incorrect_count': incorrect_count,
         'correct_percent': correct_percent,
-        'incorrect_percent': incorrect_percent
+        'incorrect_percent': incorrect_percent,
+        'questions_data': questions_data  # Передаем данные вопросов в шаблон
     })
-
 @login_required
 def teacher_dashboard(request):
     if not request.user.is_staff:
@@ -163,25 +214,86 @@ def teacher_dashboard(request):
 
 
 @login_required
-def edit_question(request, question_id):
-    question = get_object_or_404(Question, pk=question_id)
-    if request.method == 'POST':
-        form = QuestionForm(request.POST, instance=question)
-        formset = AnswerFormSet(request.POST, instance=question)
-        if form.is_valid() and formset.is_valid():
-            form.save()
-            formset.save()
-            return redirect('edit_test', test_id=question.test.id)
-    else:
-        form = QuestionForm(instance=question)
-        formset = AnswerFormSet(instance=question)
+def edit_test(request, test_id):
+    test = get_object_or_404(Test, pk=test_id)
+    QuestionFormSet = inlineformset_factory(
+        Test, Question, form=QuestionForm,
+        extra=1, can_delete=True
+    )
 
-    return render(request, 'lms_cleint/question_edit.html', {
-        'question': question,
+    if request.method == 'POST':
+        form = TestForm(request.POST, instance=test)
+        question_formset = QuestionFormSet(request.POST, instance=test)
+
+        if form.is_valid() and question_formset.is_valid():
+            with transaction.atomic():
+                test = form.save()
+                questions = question_formset.save(commit=False)
+
+                for i, question in enumerate(questions):
+                    question.test = test
+                    question.save()
+
+                    # Handling answers
+                    if question.question_type in ['single', 'multiple']:
+                        # Delete old answers
+                        question.answers.all().delete()
+
+                        # Get all answers for this question
+                        prefix = f'questions-{i}-answers'
+                        answer_count = 0
+
+                        while True:
+                            text_key = f'{prefix}-{answer_count}-text'
+                            is_correct_key = f'{prefix}-{answer_count}-is_correct'
+
+                            if text_key not in request.POST:
+                                break
+
+                            answer_text = request.POST.get(text_key)
+                            if answer_text:  # Check that the answer text is not empty
+                                is_correct = request.POST.get(is_correct_key, 'false') == 'true'
+                                Answer.objects.create(
+                                    question=question,
+                                    text=answer_text,
+                                    is_correct=is_correct
+                                )
+                            answer_count += 1
+
+                    elif question.question_type == 'text':
+                        # Обработка текстового ответа
+                        correct_answer_key = f'questions-{i}-correct_answer'
+                        correct_answer = request.POST.get(correct_answer_key, '').strip()
+
+                        if correct_answer:
+                            Answer.objects.create(
+                                question=question,
+                                text=correct_answer,
+                                is_correct=True
+                            )
+
+                # Delete marked questions
+                for question in question_formset.deleted_objects:
+                    question.delete()
+
+                return redirect('chapter_detail', chapter_id=test.chapter.id)
+        else:
+            # Вывод ошибок валидации
+            print("Form errors:", form.errors)
+            print("Formset errors:", question_formset.errors)
+    else:
+        form = TestForm(instance=test)
+        question_formset = QuestionFormSet(instance=test)
+
+    return render(request, 'lms_cleint/test_edit.html', {
+        'test': test,
         'form': form,
-        'formset': formset,
-        'test': question.test
+        'question_formset': question_formset
     })
+
+
+
+
 @login_required
 def create_test(request, chapter_id):
     chapter = get_object_or_404(Chapter, pk=chapter_id)
@@ -203,10 +315,11 @@ def create_test(request, chapter_id):
                     question.test = test
                     question.save()
 
-                    # Handling answers
+                    # Обработка ответов
                     question_type = question.question_type
+                    
                     if question_type in ['single', 'multiple']:
-                        # Get all answers for this question
+                        # Обработка вариантов ответов
                         answer_prefix = f'questions-{i}-answers'
                         answer_count = 0
 
@@ -218,7 +331,7 @@ def create_test(request, chapter_id):
                                 break
 
                             answer_text = request.POST.get(text_key)
-                            if answer_text:  # Check that the answer text is not empty
+                            if answer_text:
                                 is_correct = request.POST.get(is_correct_key, 'false') == 'true'
                                 Answer.objects.create(
                                     question=question,
@@ -226,9 +339,12 @@ def create_test(request, chapter_id):
                                     is_correct=is_correct
                                 )
                             answer_count += 1
+                    
                     elif question_type == 'text':
-                        correct_answer = request.POST.get(f'questions-{i}-correct_answer')
-                        print(f"Correct answer for question {i}: {correct_answer}")  # Отладочное сообщение
+                        # Обработка текстового ответа
+                        correct_answer_key = f'questions-{i}-correct_answer'
+                        correct_answer = request.POST.get(correct_answer_key, '').strip()
+                        
                         if correct_answer:
                             Answer.objects.create(
                                 question=question,
@@ -246,9 +362,6 @@ def create_test(request, chapter_id):
         'question_formset': question_formset,
         'chapter': chapter
     })
-
-
-
 
 @login_required
 def view_test(request, test_id):
