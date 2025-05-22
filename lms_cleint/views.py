@@ -1,20 +1,166 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
-from django.contrib.auth import login, authenticate
+from django.contrib.auth import login, authenticate, logout
 from django.contrib.auth.forms import AuthenticationForm
-from lms_cleint.models import Course, Subject
-from lms_cleint.forms import CourseForm, SubjectForm, TestForm, QuestionForm, AnswerForm, AnswerFormSet
-from django.contrib.auth import logout
-from .models import Chapter, ChapterFile, Article
-from .forms import ChapterForm, ChapterFileForm, ArticleForm,Test, Question, Answer,QuestionFormSet
-from django.http import JsonResponse
+from django.http import HttpResponseForbidden, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
-from django.conf import settings
-import os
 from django.db import transaction
-import json 
 from django.forms import inlineformset_factory
 from itertools import chain
+from django.conf import settings
+from lms_cleint.models import Course, Subject, Test, Question, Answer, TestResult, Chapter, ChapterFile, Article, CustomUser
+from lms_cleint.forms import CourseForm, SubjectForm, TestForm, QuestionForm, AnswerForm, AnswerFormSet, ChapterForm, ChapterFileForm, ArticleForm, QuestionFormSet
+import os
+import json
+import numpy as np
+from sentence_transformers import SentenceTransformer
+
+
+def view_test_result(request, result_id):
+    result = get_object_or_404(TestResult, pk=result_id)
+    return render(request, 'lms_cleint/view_test_result.html', {'result': result})
+
+model = None
+if not settings.DEBUG:  # In development, you can avoid loading to save memory
+    model = SentenceTransformer('sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2')
+
+def check_text_answer(user_answer, correct_answer):
+    """Compare text answers using Sentence Transformers"""
+    if not user_answer.strip():
+        return False
+
+    if model:
+        # Vectorize answers
+        emb_user = model.encode(user_answer)
+        emb_correct = model.encode(correct_answer)
+        # Cosine similarity
+        similarity = np.dot(emb_user, emb_correct) / (np.linalg.norm(emb_user) * np.linalg.norm(emb_correct))
+        return similarity > 0.65  # Threshold can be adjusted
+    else:
+        # Fallback for development
+        return user_answer.lower().strip() == correct_answer.lower().strip()
+    
+@login_required
+def submit_test(request, test_id):
+    test = get_object_or_404(Test, pk=test_id)
+    results = []
+    total_score = 0
+
+    if request.method == 'POST':
+        for question in test.questions.all():
+            if question.question_type == 'text':
+                user_answer = request.POST.get(f'question_{question.id}', '').strip()
+                correct_answer_obj = question.answers.first()
+                if correct_answer_obj:
+                    correct_answer = correct_answer_obj.text
+                else:
+                    correct_answer = ""  # Default or handle the case where there is no correct answer
+                is_correct = check_text_answer(user_answer, correct_answer)
+                score = 1 if is_correct else 0
+            else:
+                # Handling choice selections
+                selected_answers = []
+                if question.question_type == 'single':
+                    answer_id = request.POST.get(f'question_{question.id}')
+                    if answer_id:
+                        selected_answers.append(int(answer_id))
+                else:
+                    for answer in question.answers.all():
+                        if request.POST.get(f'question_{question.id}_{answer.id}'):
+                            selected_answers.append(answer.id)
+
+                correct_answers = list(question.answers.filter(is_correct=True).values_list('id', flat=True))
+                is_correct = set(selected_answers) == set(correct_answers)
+                score = 1 if is_correct else 0
+
+            results.append({
+                'question_id': question.id,
+                'question_text': question.text,
+                'user_answer': user_answer if question.question_type == 'text' else selected_answers,
+                'correct_answer': correct_answer if question.question_type == 'text' else correct_answers,
+                'is_correct': is_correct,
+                'score': score
+            })
+            total_score += score
+
+        # Save the result
+        TestResult.objects.create(
+            user=request.user,
+            test=test,
+            score=total_score,
+            max_score=test.questions.count(),
+            details={'questions': results}
+        )
+
+        return redirect('test_result', test_id=test.id)
+
+    return redirect('view_test', test_id=test.id)
+
+
+
+
+@login_required
+def test_result(request, test_id):
+    test = get_object_or_404(Test, pk=test_id)
+    result = TestResult.objects.filter(test=test, user=request.user).latest('submitted_at')
+    correct_count = sum(1 for item in result.details['questions'] if item['is_correct'])
+    incorrect_count = len(result.details['questions']) - correct_count
+    correct_percent = (correct_count / len(result.details['questions'])) * 100 if result.details['questions'] else 0
+    incorrect_percent = 100 - correct_percent
+
+    return render(request, 'lms_cleint/view_test_result.html', {
+        'test': test,
+        'result': result,
+        'passed': result.get_percentage() >= test.passing_score,
+        'correct_count': correct_count,
+        'incorrect_count': incorrect_count,
+        'correct_percent': correct_percent,
+        'incorrect_percent': incorrect_percent
+    })
+
+@login_required
+def teacher_dashboard(request):
+    if not request.user.is_staff:
+        return HttpResponseForbidden()
+
+    tests = Test.objects.filter(chapter__subject__teachers=request.user).distinct()
+    test_id = request.GET.get('test_id')
+
+    if test_id:
+        test = get_object_or_404(Test, pk=test_id)
+        results = TestResult.objects.filter(test=test).select_related('user')
+
+        # Statistics
+        avg_score = results.aggregate(avg=models.Avg('score'))['avg'] or 0
+        pass_rate = results.filter(score__gte=test.passing_score).count() / results.count() * 100 if results.count() > 0 else 0
+        attempt_count = results.count()  # Количество попыток
+
+        # Analysis of difficult questions
+        question_stats = []
+        for question in test.questions.all():
+            correct_count = sum(1 for r in results if any(
+                q['question_id'] == question.id and q['is_correct']
+                for q in r.details['questions']
+            ))
+            question_stats.append({
+                'question': question,
+                'correct_rate': correct_count / results.count() * 100 if results.count() > 0 else 0
+            })
+
+        return render(request, 'lms_cleint/teacher_test_analytics.html', {
+            'test': test,
+            'results': results,
+            'avg_score': round(avg_score, 2),
+            'pass_rate': round(pass_rate, 2),
+            'attempt_count': attempt_count,  # Передаем количество попыток в шаблон
+            'question_stats': sorted(question_stats, key=lambda x: x['correct_rate']),
+            'tests': tests
+        })
+
+    return render(request, 'lms_cleint/teacher_dashboard.html', {
+        'tests': tests
+    })
+
 
 @login_required
 def edit_question(request, question_id):
@@ -29,84 +175,80 @@ def edit_question(request, question_id):
     else:
         form = QuestionForm(instance=question)
         formset = AnswerFormSet(instance=question)
-    
+
     return render(request, 'lms_cleint/question_edit.html', {
         'question': question,
         'form': form,
         'formset': formset,
         'test': question.test
     })
-
-@login_required
-def submit_test(request, test_id):
-    test = get_object_or_404(Test, pk=test_id)
-    
-    if request.method == 'POST':
-        # Здесь будет логика обработки ответов
-        # Пока просто редиректим обратно к тесту
-        return redirect('view_test', test_id=test.id)
-    
-    return redirect('view_test', test_id=test.id)
-
 @login_required
 def create_test(request, chapter_id):
     chapter = get_object_or_404(Chapter, pk=chapter_id)
     if request.method == 'POST':
         form = TestForm(request.POST)
         question_formset = QuestionFormSet(request.POST, prefix='questions')
-        
+
         if form.is_valid() and question_formset.is_valid():
-            test = form.save(commit=False)
-            test.chapter = chapter
-            test.save()
-            
-            questions = question_formset.save(commit=False)
-            for question in questions:
-                question.test = test
-                question.save()
-                
-                # Обработка ответов
-                if question.question_type in ['single', 'multiple']:
-                    answer_prefix = f'answers-{question.id}-'
-                    answers_data = {}
-                    
-                    # Собираем данные ответов
-                    for key, value in request.POST.items():
-                        if key.startswith(answer_prefix):
-                            parts = key.replace(answer_prefix, '').split('-')
-                            index = parts[0]
-                            field = parts[1] if len(parts) > 1 else 'text'
-                            
-                            if index not in answers_data:
-                                answers_data[index] = {'is_correct': False}
-                            
-                            if field == 'text':
-                                answers_data[index]['text'] = value
-                            elif field == 'correct':
-                                if question.question_type == 'single':
-                                    answers_data[index]['is_correct'] = (value == index)
-                                else:
-                                    answers_data[index]['is_correct'] = True
-                    
-                    # Создаем ответы
-                    for answer_data in answers_data.values():
-                        if 'text' in answer_data:
+            with transaction.atomic():
+                test = form.save(commit=False)
+                test.chapter = chapter
+                test.save()
+
+                for i, question_form in enumerate(question_formset):
+                    if question_form.cleaned_data.get('DELETE', False):
+                        continue
+
+                    question = question_form.save(commit=False)
+                    question.test = test
+                    question.save()
+
+                    # Handling answers
+                    question_type = question.question_type
+                    if question_type in ['single', 'multiple']:
+                        # Get all answers for this question
+                        answer_prefix = f'questions-{i}-answers'
+                        answer_count = 0
+
+                        while True:
+                            text_key = f'{answer_prefix}-{answer_count}-text'
+                            is_correct_key = f'{answer_prefix}-{answer_count}-is_correct'
+
+                            if text_key not in request.POST:
+                                break
+
+                            answer_text = request.POST.get(text_key)
+                            if answer_text:  # Check that the answer text is not empty
+                                is_correct = request.POST.get(is_correct_key, 'false') == 'true'
+                                Answer.objects.create(
+                                    question=question,
+                                    text=answer_text,
+                                    is_correct=is_correct
+                                )
+                            answer_count += 1
+                    elif question_type == 'text':
+                        correct_answer = request.POST.get(f'questions-{i}-correct_answer')
+                        print(f"Correct answer for question {i}: {correct_answer}")  # Отладочное сообщение
+                        if correct_answer:
                             Answer.objects.create(
                                 question=question,
-                                text=answer_data['text'],
-                                is_correct=answer_data['is_correct']
+                                text=correct_answer,
+                                is_correct=True
                             )
-            
-            return redirect('chapter_detail', chapter_id=chapter.id)
+
+                return redirect('chapter_detail', chapter_id=chapter.id)
     else:
         form = TestForm()
         question_formset = QuestionFormSet(prefix='questions', queryset=Question.objects.none())
-    
+
     return render(request, 'lms_cleint/test_create.html', {
         'form': form,
         'question_formset': question_formset,
         'chapter': chapter
     })
+
+
+
 
 @login_required
 def view_test(request, test_id):
@@ -114,31 +256,63 @@ def view_test(request, test_id):
     return render(request, 'lms_cleint/test_view.html', {
         'test': test
     })
+
 @login_required
 def edit_test(request, test_id):
     test = get_object_or_404(Test, pk=test_id)
+    QuestionFormSet = inlineformset_factory(
+        Test, Question, form=QuestionForm,
+        extra=1, can_delete=True
+    )
+
     if request.method == 'POST':
         form = TestForm(request.POST, instance=test)
         question_formset = QuestionFormSet(request.POST, instance=test)
-        
+
         if form.is_valid() and question_formset.is_valid():
-            form.save()
-            questions = question_formset.save(commit=False)
-            
-            for question in questions:
-                question.test = test
-                question.save()
-                
-            question_formset.save_m2m()
-            
-            for question in question_formset.deleted_objects:
-                question.delete()
-                
-            return redirect('chapter_detail', chapter_id=test.chapter.id)
+            with transaction.atomic():
+                test = form.save()
+                questions = question_formset.save(commit=False)
+
+                for question in questions:
+                    question.test = test
+                    question.save()
+
+                    # Handling answers
+                    if question.question_type in ['single', 'multiple']:
+                        # Delete old answers
+                        question.answers.all().delete()
+
+                        # Get all answers for this question
+                        prefix = f'questions-{question_formset.forms.index(question_formset.forms[questions.index(question)])}-answers'
+                        answer_count = 0
+
+                        while True:
+                                text_key = f'{prefix}-{answer_count}-text'
+                                is_correct_key = f'{prefix}-{answer_count}-is_correct'
+
+                                if text_key not in request.POST:
+                                    break
+
+                                answer_text = request.POST.get(text_key)
+                                if answer_text:  # Check that the answer text is not empty
+                                    is_correct = request.POST.get(is_correct_key, 'false') == 'true'
+                                    Answer.objects.create(
+                                        question=question,
+                                        text=answer_text,
+                                        is_correct=is_correct
+                                    )
+                                answer_count += 1
+
+                # Delete marked questions
+                for question in question_formset.deleted_objects:
+                    question.delete()
+
+                return redirect('chapter_detail', chapter_id=test.chapter.id)
     else:
         form = TestForm(instance=test)
         question_formset = QuestionFormSet(instance=test)
-    
+
     return render(request, 'lms_cleint/test_edit.html', {
         'test': test,
         'form': form,
@@ -155,74 +329,49 @@ def delete_test(request, test_id):
 @login_required
 def add_question(request, test_id):
     test = get_object_or_404(Test, pk=test_id)
-    
-    if request.method == 'POST':
-        form = QuestionForm(request.POST)
-        if form.is_valid():
-            question = form.save(commit=False)
-            question.test = test
-            question.position = Question.objects.filter(test=test).count() + 1
-            question.save()
-            
-            # Обработка ответов для вопросов с вариантами
-            if question.question_type in ['single', 'multiple']:
-                answers_data = {}
-                
-                # Собираем данные ответов из POST-запроса
-                for key, value in request.POST.items():
-                    if key.startswith('answers['):
-                        parts = key.split('[')
-                        index = int(parts[1].split(']')[0])
-                        field = parts[2].split(']')[0]
-                        
-                        if index not in answers_data:
-                            answers_data[index] = {}
-                        answers_data[index][field] = value
-                
-                # Создаем ответы
-                for answer_data in answers_data.values():
-                    answer = Answer(
-                        question=question,
-                        text=answer_data.get('text', ''),
-                        is_correct=answer_data.get('is_correct', False) == 'on',
-                        position=len(question.answers.all()) + 1
-                    )
-                    answer.save()
-            
-            return redirect('edit_test', test_id=test.id)
-    else:
-        form = QuestionForm()
-    
-    return render(request, 'lms_cleint/question_form.html', {
-        'test': test,
-        'form': form
-    })
 
-@login_required
-def edit_question(request, question_id):
-    question = get_object_or_404(Question, pk=question_id)
-    AnswerFormSet = inlineformset_factory(
-        Question, Answer, form=AnswerForm,
-        extra=1, can_delete=True
-    )
-    
     if request.method == 'POST':
-        form = QuestionForm(request.POST, instance=question)
-        formset = AnswerFormSet(request.POST, instance=question)
-        if form.is_valid() and formset.is_valid():
-            form.save()
-            formset.save()
-            return redirect('edit_test', test_id=question.test.id)
-    else:
-        form = QuestionForm(instance=question)
-        formset = AnswerFormSet(instance=question)
-    
-    return render(request, 'lms_cleint/question_edit.html', {
-        'question': question,
-        'form': form,
-        'formset': formset,
-        'test': question.test
-    })
+        question_text = request.POST.get('text')
+        question_type = request.POST.get('question_type')
+
+        if question_text and question_type:
+            question = Question.objects.create(
+                test=test,
+                text=question_text,
+                question_type=question_type
+            )
+
+            # Handle answers only for questions with options
+            if question_type in ['single', 'multiple']:
+                answers = []
+                # Collect all answer keys
+                for key in request.POST:
+                    if key.startswith('answers['):
+                        # Example key: 'answers[0][text]'
+                        parts = key.split('[')
+                        index = parts[1].split(']')[0]
+                        field = parts[2].split(']')[0]
+
+                        # Create or get a dictionary for this answer
+                        if index not in [a['index'] for a in answers]:
+                            answers.append({'index': index})
+
+                        # Find this answer in the list
+                        answer = next(a for a in answers if a['index'] == index)
+                        answer[field] = request.POST[key]
+
+                # Create answers in the database
+                for answer_data in answers:
+                    if 'text' in answer_data and answer_data['text']:
+                        Answer.objects.create(
+                            question=question,
+                            text=answer_data['text'],
+                            is_correct=answer_data.get('is_correct', False) == 'on'
+                        )
+
+            return redirect('edit_test', test_id=test.id)
+
+    return render(request, 'lms_cleint/question_form.html', {'test': test})
 
 @login_required
 def delete_question(request, question_id):
@@ -244,31 +393,29 @@ def update_materials_order(request, chapter_id):
                     if item_id.startswith('file_'):
                         file_id = item_id.replace('file_', '')
                         ChapterFile.objects.filter(
-                            id=file_id, 
+                            id=file_id,
                             chapter=chapter
                         ).update(position=index)
                     elif item_id.startswith('article_'):
                         article_id = item_id.replace('article_', '')
                         Article.objects.filter(
-                            id=article_id, 
+                            id=article_id,
                             chapter=chapter
                         ).update(position=index)
                     elif item_id.startswith('test_'):
                         test_id = item_id.replace('test_', '')
                         Test.objects.filter(
-                            id=test_id, 
+                            id=test_id,
                             chapter=chapter
                         ).update(position=index)
 
             return JsonResponse({'status': 'success'})
         except Exception as e:
             return JsonResponse(
-                {'status': 'error', 'message': str(e)}, 
+                {'status': 'error', 'message': str(e)},
                 status=400
             )
     return JsonResponse({'status': 'error'}, status=400)
-
-
 
 @login_required
 def edit_article(request, article_id):
@@ -292,24 +439,20 @@ def delete_article(request, article_id):
     article.delete()
     return redirect('chapter_detail', chapter_id=chapter_id)
 
-
-
-
 def save_uploaded_file(uploaded_file):
-    # Создаем путь для сохранения файла
+    # Create path for saving the file
     upload_dir = os.path.join(settings.MEDIA_ROOT, 'uploads')
     if not os.path.exists(upload_dir):
         os.makedirs(upload_dir)
 
-    # Сохраняем файл
+    # Save the file
     file_path = os.path.join(upload_dir, uploaded_file.name)
     with open(file_path, 'wb+') as destination:
         for chunk in uploaded_file.chunks():
             destination.write(chunk)
 
-    # Возвращаем URL файла
+    # Return the file URL
     return os.path.join(settings.MEDIA_URL, 'uploads', uploaded_file.name)
-
 
 @csrf_exempt
 def upload_image(request):
@@ -319,7 +462,6 @@ def upload_image(request):
         return JsonResponse({'location': file_url})
     return JsonResponse({'error': 'Invalid request'}, status=400)
 
-
 @login_required
 def create_article(request, chapter_id):
     chapter = get_object_or_404(Chapter, pk=chapter_id)
@@ -328,7 +470,7 @@ def create_article(request, chapter_id):
         if form.is_valid():
             article = form.save(commit=False)
             article.chapter = chapter
-            # Получаем последний материал в главе и устанавливаем позицию
+            # Get the last material in the chapter and set the position
             last_material = Article.objects.filter(chapter=chapter).order_by('-position').first()
             article.position = last_material.position + 1 if last_material else 1
             article.save()
@@ -340,14 +482,12 @@ def create_article(request, chapter_id):
         'chapter': chapter
     })
 
-
 @login_required
 def article_detail(request, article_id):
     article = get_object_or_404(Article, pk=article_id)
     return render(request, 'lms_cleint/article_detail.html', {
         'article': article
     })
-
 
 @login_required
 def chapter_list(request, subject_id):
@@ -373,7 +513,6 @@ def chapter_create(request, subject_id):
         form = ChapterForm(subject_id=subject_id)
     return render(request, 'lms_cleint/chapter_form.html', {'form': form, 'subject': subject})
 
-
 @login_required
 def chapter_detail(request, chapter_id):
     chapter = get_object_or_404(Chapter, pk=chapter_id)
@@ -381,7 +520,7 @@ def chapter_detail(request, chapter_id):
     articles = Article.objects.filter(chapter=chapter).order_by('position')
     tests = Test.objects.filter(chapter=chapter).order_by('position')
 
-    # Добавляем material_type к каждому объекту
+    # Add material_type to each object
     for f in files:
         f.material_type = 'file'
     for a in articles:
@@ -389,7 +528,7 @@ def chapter_detail(request, chapter_id):
     for t in tests:
         t.material_type = 'test'
 
-    # Объединяем и сортируем
+    # Combine and sort
     materials = sorted(
         chain(files, articles, tests),
         key=lambda x: x.position
@@ -418,6 +557,7 @@ def delete_file(request, file_id):
     chapter_id = file.chapter.id
     file.delete()
     return redirect('chapter_detail', chapter_id=chapter_id)
+
 def custom_logout(request):
     logout(request)
     return redirect('login')
@@ -440,7 +580,6 @@ def login_view(request):
 def course_list(request):
     courses = Course.objects.all()
     return render(request, 'lms_cleint/course_list.html', {'courses': courses})
-
 
 @login_required
 def course_create(request):
@@ -499,3 +638,5 @@ def subject_edit(request, pk):
     else:
         form = SubjectForm(instance=subject)
     return render(request, 'lms_cleint/subject_form.html', {'form': form, 'course': subject.course})
+
+

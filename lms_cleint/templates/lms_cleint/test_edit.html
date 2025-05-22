@@ -3,7 +3,7 @@
 <div class="container">
     <h2>Редактирование теста: {{ test.title }}</h2>
     
-    <form method="post">
+    <form method="post" id="test-form">
         {% csrf_token %}
         <div class="card mb-4">
             <div class="card-body">
@@ -26,47 +26,98 @@
             <div class="card mb-3 question-item">
                 <div class="card-body">
                     {{ form.id }}
+                    {% if form.instance.pk %}{{ form.DELETE }}{% endif %}
                     <div class="mb-3">
-                        {{ form.text.label_tag }}
-                        {{ form.text }}
+                        <label for="{{ form.text.id_for_label }}">Текст вопроса:</label>
+                        <textarea name="{{ form.text.html_name }}" class="form-control" id="{{ form.text.id_for_label }}" rows="3" required>{{ form.text.value|default_if_none:'' }}</textarea>
                     </div>
                     <div class="mb-3">
-                        {{ form.question_type.label_tag }}
-                        {{ form.question_type }}
+                        <label for="{{ form.question_type.id_for_label }}">Тип вопроса:</label>
+                        <select name="{{ form.question_type.html_name }}" class="form-select" id="{{ form.question_type.id_for_label }}" onchange="toggleAnswerFields(this)">
+                            <option value="">Выберите тип вопроса</option>
+                            <option value="single" class="underline-equals" data-value="{% if form.question_type.value == 'single' %}selected{% endif %}">Один правильный ответ</option>
+                            <option value="multiple" class="underline-equals" data-value="{% if form.question_type.value == 'multiple' %}selected{% endif %}">Несколько правильных ответов</option>
+                            <option value="text" class="underline-equals" data-value="{% if form.question_type.value == 'text' %}selected{% endif %}">Текстовый ответ</option>                 
+                        </select>
                     </div>
-                    
-                    {% if form.instance.pk %}
-                        <div class="answers-section mb-3">
-                            <h5>Варианты ответов</h5>
-                            <a href="{% url 'edit_question' form.instance.id %}" class="btn btn-sm btn-primary mb-2">
-                                Редактировать варианты ответов
-                            </a>
-                            <ul class="list-group">
+
+                    <div class="answers-section mb-3"data-value="{% if form.question_type.value in 'single,multiple' %}block{% else %}none{% endif %}">
+                        <h5>Варианты ответов</h5>
+                        <div class="answers-list">
+                            {% if form.instance.pk %}
                                 {% for answer in form.instance.answers.all %}
-                                <li class="list-group-item">
-                                    {{ answer.text }}
-                                    {% if answer.is_correct %}
-                                        <span class="badge bg-success">Правильный</span>
-                                    {% endif %}
-                                </li>
+                                <div class="answer-item mb-2 p-2 border rounded">
+                                    <div class="form-group">
+                                        <label>Текст ответа:</label>
+                                        <input type="text" name="questions-{{ forloop.parentloop.counter0 }}-answers-{{ answer.id }}-text" 
+                                               class="form-control" value="{{ answer.text }}" required>
+                                    </div>
+                                    <div class="form-check">
+                                        <input type="{% if form.question_type.value == 'single' %}radio{% else %}checkbox{% endif %}" 
+                                               name="{% if form.question_type.value == 'single' %}questions-{{ forloop.parentloop.counter0 }}-correct-answer{% else %}questions-{{ forloop.parentloop.counter0 }}-answers-{{ answer.id }}-is_correct{% endif %}" 
+                                               value="{{ answer.id }}" 
+                                               class="form-check-input"
+                                               {% if answer.is_correct %}checked{% endif %}>
+                                        <label class="form-check-label">Правильный ответ</label>
+                                    </div>
+                                    <button type="button" class="btn btn-sm btn-danger remove-answer">Удалить</button>
+                                </div>
                                 {% endfor %}
-                            </ul>
+                            {% endif %}
                         </div>
-                    {% endif %}
+                        
+                        <button type="button" class="btn btn-sm btn-success add-answer" data-question-id="{{ form.instance.pk|default:'new' }}" data-form-index="{{ forloop.counter0 }}">Добавить вариант</button>
+                    </div>
                     
-                    {% if question_formset.can_delete %}
+                    <div class="d-flex justify-content-between">
+                        {% if form.instance.pk %}
                         <div class="form-check">
                             {{ form.DELETE }}
-                            {{ form.DELETE.label_tag }}
+                            <label class="form-check-label" for="{{ form.DELETE.id_for_label }}">Удалить вопрос</label>
                         </div>
-                    {% endif %}
+                        {% endif %}
+                        <button type="button" class="btn btn-sm btn-danger remove-question">Удалить вопрос</button>
+                    </div>
                 </div>
             </div>
             {% endfor %}
         </div>
         
-        <button type="submit" class="btn btn-primary">Сохранить тест</button>
-        <a href="{% url 'chapter_detail' test.chapter.id %}" class="btn btn-secondary">Отмена</a>
+        <div class="d-flex justify-content-between mt-4">
+            <button type="button" id="add-question" class="btn btn-success">Добавить вопрос</button>
+            <div>
+                <button type="submit" class="btn btn-primary me-2">Сохранить тест</button>
+                <a href="{% url 'chapter_detail' test.chapter.id %}" class="btn btn-secondary">Отмена</a>
+            </div>
+        </div>
     </form>
 </div>
+
+<script>
+// Оставьте JavaScript код из test_create.html без изменений
+document.addEventListener('DOMContentLoaded', function() {
+    // ... (весь JavaScript код из test_create.html)
+});
+</script>
+
+<style>
+.question-item {
+    background-color: #f8f9fa;
+    padding: 15px;
+    border-radius: 5px;
+    margin-bottom: 15px;
+}
+.answer-item {
+    background-color: #e9ecef;
+    padding: 10px;
+    border-radius: 5px;
+    margin-bottom: 10px;
+}
+.remove-question {
+    margin-top: 10px;
+}
+.add-answer {
+    margin-top: 10px;
+}
+</style>
 {% endblock %}

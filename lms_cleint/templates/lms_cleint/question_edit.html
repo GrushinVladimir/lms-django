@@ -3,17 +3,22 @@
 <div class="container">
     <h2>Редактирование вопроса</h2>
     
-    <form method="post">
+    <form method="post" id="question-form">
         {% csrf_token %}
         <div class="card mb-4">
             <div class="card-body">
                 <div class="mb-3">
-                    {{ form.text.label_tag }}
-                    {{ form.text }}
+                    <label for="{{ form.text.id_for_label }}">Текст вопроса:</label>
+                    <textarea name="{{ form.text.html_name }}" class="form-control" id="{{ form.text.id_for_label }}" rows="3" required>{{ form.text.value|default_if_none:'' }}</textarea>
                 </div>
                 <div class="mb-3">
-                    {{ form.question_type.label_tag }}
-                    {{ form.question_type }}
+                    <label for="{{ form.question_type.id_for_label }}">Тип вопроса:</label>
+                    <select name="{{ form.question_type.html_name }}" class="form-select" id="{{ form.question_type.id_for_label }}" onchange="toggleAnswerFields(this)">
+                        <option value="">Выберите тип вопроса</option>
+                        <option value="single" {% if form.question_type.value == 'single' %}selected{% endif %}>Один правильный ответ</option>
+                        <option value="multiple" {% if form.question_type.value == 'multiple' %}selected{% endif %}>Несколько правильных ответов</option>
+                        <option value="text" {% if form.question_type.value == 'text' %}selected{% endif %}>Текстовый ответ</option>
+                    </select>
                 </div>
             </div>
         </div>
@@ -28,40 +33,126 @@
                 <div class="card-body">
                     {{ form.id }}
                     <div class="mb-3">
-                        {{ form.text.label_tag }}
-                        {{ form.text }}
+                        <label for="{{ form.text.id_for_label }}">Текст ответа:</label>
+                        <input type="text" name="{{ form.text.html_name }}" class="form-control" id="{{ form.text.id_for_label }}" value="{{ form.text.value|default_if_none:'' }}" required>
                     </div>
                     <div class="mb-3">
-                        {% if form.instance.question.question_type == 'single' %}
-                            {{ form.is_correct.label_tag }}
-                            {{ form.is_correct }}
-                        {% else %}
-                            <div class="form-check">
-                                {{ form.is_correct }}
-                                {{ form.is_correct.label_tag }}
-                            </div>
-                        {% endif %}
+                        <div class="form-check">
+                            <input type="{% if question.question_type == 'single' %}radio{% else %}checkbox{% endif %}" 
+                                   name="{% if question.question_type == 'single' %}correct_answer{% else %}{{ form.is_correct.html_name }}{% endif %}" 
+                                   value="{{ form.instance.id|default:forloop.counter0 }}" 
+                                   class="form-check-input" 
+                                   id="{{ form.is_correct.id_for_label }}"
+                                   {% if form.is_correct.value %}checked{% endif %}>
+                            <label class="form-check-label" for="{{ form.is_correct.id_for_label }}">Правильный ответ</label>
+                        </div>
                     </div>
                     {% if formset.can_delete %}
                         <div class="form-check">
                             {{ form.DELETE }}
-                            {{ form.DELETE.label_tag }}
+                            <label class="form-check-label" for="{{ form.DELETE.id_for_label }}">Удалить ответ</label>
                         </div>
                     {% endif %}
                 </div>
             </div>
             {% endfor %}
         </div>
+        
+        <button type="button" id="add-answer" class="btn btn-success mb-3">Добавить вариант ответа</button>
         {% endif %}
         
-        <button type="submit" class="btn btn-primary">Сохранить вопрос</button>
-        <a href="{% url 'edit_test' test.id %}" class="btn btn-secondary">Отмена</a>
+        <div class="d-flex justify-content-between">
+            <button type="submit" class="btn btn-primary">Сохранить вопрос</button>
+            <a href="{% url 'edit_test' test.id %}" class="btn btn-secondary">Отмена</a>
+        </div>
     </form>
 </div>
 
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Функция для переключения полей ответов
+    function toggleAnswerFields(selectElement) {
+        const answersContainer = document.getElementById('answers-container');
+        const addAnswerBtn = document.getElementById('add-answer');
+        
+        if (selectElement && selectElement.value === 'text') {
+            if (answersContainer) answersContainer.style.display = 'none';
+            if (addAnswerBtn) addAnswerBtn.style.display = 'none';
+        } else if (answersContainer) {
+            answersContainer.style.display = 'block';
+            if (addAnswerBtn) addAnswerBtn.style.display = 'block';
+        }
+    }
+
+    // Инициализация при загрузке
+    const questionTypeSelect = document.querySelector('select[name$="-question_type"]');
+    if (questionTypeSelect) {
+        toggleAnswerFields(questionTypeSelect);
+        questionTypeSelect.addEventListener('change', function() {
+            toggleAnswerFields(this);
+        });
+    }
+
+    // Добавление нового ответа
+    const addAnswerBtn = document.getElementById('add-answer');
+    if (addAnswerBtn) {
+        addAnswerBtn.addEventListener('click', function() {
+            const formCount = parseInt(document.getElementById('id_answers-TOTAL_FORMS').value);
+            const container = document.getElementById('answers-container');
+            const questionType = document.querySelector('select[name$="-question_type"]').value;
+            
+            document.getElementById('id_answers-TOTAL_FORMS').value = formCount + 1;
+            
+            const newAnswer = document.createElement('div');
+            newAnswer.className = 'card mb-3 answer-item';
+            newAnswer.innerHTML = `
+                <div class="card-body">
+                    <input type="hidden" name="answers-${formCount}-id" id="id_answers-${formCount}-id">
+                    <div class="mb-3">
+                        <label for="id_answers-${formCount}-text">Текст ответа:</label>
+                        <input type="text" name="answers-${formCount}-text" class="form-control" id="id_answers-${formCount}-text" required>
+                    </div>
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input type="${questionType === 'single' ? 'radio' : 'checkbox'}" 
+                                   name="${questionType === 'single' ? 'correct_answer' : 'answers-${formCount}-is_correct'}" 
+                                   value="${formCount}"
+                                   class="form-check-input" 
+                                   id="id_answers-${formCount}-is_correct">
+                            <label class="form-check-label" for="id_answers-${formCount}-is_correct">Правильный ответ</label>
+                        </div>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-danger remove-answer">Удалить</button>
+                </div>
+            `;
+            
+            container.appendChild(newAnswer);
+            
+            // Обработчик удаления ответа
+            newAnswer.querySelector('.remove-answer').addEventListener('click', function() {
+                container.removeChild(newAnswer);
+                document.getElementById('id_answers-TOTAL_FORMS').value = parseInt(document.getElementById('id_answers-TOTAL_FORMS').value) - 1;
+            });
+        });
+    }
+});
+</script>
+
 <style>
-.answer-item {
+.question-item {
     background-color: #f8f9fa;
+    padding: 15px;
+    border-radius: 5px;
+    margin-bottom: 15px;
+}
+.answer-item {
+    background-color: #e9ecef;
+    padding: 10px;
+    border-radius: 5px;
+    margin-bottom: 10px;
+}
+.remove-answer {
+    margin-top: 10px;
 }
 </style>
 {% endblock %}

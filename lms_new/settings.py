@@ -38,7 +38,9 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'lms_cleint',
-    'tinymce'
+    'tinymce',
+    'sentence_transformers',
+
 ]
 
 AUTH_USER_MODEL = 'lms_cleint.CustomUser'

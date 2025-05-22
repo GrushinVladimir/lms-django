@@ -1,0 +1,101 @@
+
+{% extends 'lms_cleint/base.html' %}
+{% load dict_filters %}
+{% block content %}
+<div class="container mt-4">
+    <div class="card mb-4">
+        <div class="card-header">
+            <h3>Статистика по тесту: {{ test.title }}</h3>
+            <h5>Студент: {{ result.user.get_full_name|default:result.user.username }}</h5>
+
+            <p>Количество попыток: {{ attempt_count }}</p>
+        </div>
+        <div class="card-body">
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <div class="alert alert-{% if passed %}success{% else %}danger{% endif %}">
+                        <h4 class="alert-heading">
+                            {% if passed %}Тест пройден{% else %}Тест не пройден{% endif %}
+                        </h4>
+                        <p>
+                            Набрано баллов: <strong>{{ result.score }} из {{ result.max_score }}</strong><br>
+                            Процент выполнения: <strong>{{ result.get_percentage }}%</strong><br>
+                            Минимальный проходной балл: <strong>{{ result.test.passing_score }}%</strong>
+                        </p>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5>Статистика по вопросам:</h5>
+                            <div class="progress mb-2">
+                                <div class="progress-bar bg-success" style="width: {{ correct_percent }}%">
+                                    {{ correct_percent|floatformat:0 }}% верно
+                                </div>
+                                <div class="progress-bar bg-danger" style="width: {{ incorrect_percent }}%">
+                                    {{ incorrect_percent|floatformat:0 }}% неверно
+                                </div>
+                            </div>
+                            <p>
+                                Правильных ответов: <strong>{{ correct_count }}</strong><br>
+                                Неправильных: <strong>{{ incorrect_count }}</strong>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <h4>Детализация по вопросам:</h4>
+            {% for item in result.details.questions %}
+            <div class="card mb-3">
+                <div class="card-header {% if item.is_correct %}bg-success text-white{% else %}bg-danger text-white{% endif %}">
+                    Вопрос {{ forloop.counter }}: {{ item.question_text|truncatechars:100 }}
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h5>Ответ студента:</h5>
+                            {% if item.user_answer is not None %}
+                                {% if item.user_answer is sequence and item.user_answer is not string %}
+                                    <ul>
+                                        {% for answer_id in item.user_answer %}
+                                            {% with answer=result.test.questions.get|get_item:item.question_id.answers|get_item:answer_id %}
+                                            <li>{{ answer.text }}</li>
+                                            {% endwith %}
+                                        {% endfor %}
+                                    </ul>
+                                {% else %}
+                                    <p>{{ item.user_answer }}</p>
+                                {% endif %}
+                            {% else %}
+                                <p class="text-muted">Нет ответа</p>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6">
+                            <h5>Правильный ответ:</h5>
+                            {% if item.correct_answer is not None %}
+                                {% if item.correct_answer is sequence and item.correct_answer is not string %}
+                                    <ul>
+                                        {% for answer_id in item.correct_answer %}
+                                            {% with answer=result.test.questions.get|get_item:item.question_id.answers|get_item:answer_id %}
+                                            <li>{{ answer.text }}</li>
+                                            {% endwith %}
+                                        {% endfor %}
+                                    </ul>
+                                {% else %}
+                                    <p>{{ item.correct_answer }}</p>
+                                {% endif %}
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    <div class="d-flex justify-content-between mt-4">
+        <a href="{% url 'submit_test' test.id %}" class="btn btn-primary">Пройти заново</a>
+        <a href="{% url 'teacher_dashboard' %}?test_id={{ test.id }}" class="btn btn-success">Сохранить результат</a>
+    </div>
+</div>
+{% endblock %}

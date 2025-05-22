@@ -9,25 +9,35 @@
     {% for question in test.questions.all %}
     <div class="card mb-3">
         <div class="card-header">
-            <h5>{{ question.text }}</h5>
+            <h5>Вопрос {{ forloop.counter }}: {{ question.text }}</h5>
         </div>
         <div class="card-body">
             {% if question.question_type == 'text' %}
                 <div class="form-group">
-                    <textarea name="question_{{ question.id }}" class="form-control" rows="3"></textarea>
+                    <textarea name="question_{{ question.id }}" class="form-control" rows="3" required></textarea>
                 </div>
             {% else %}
                 {% for answer in question.answers.all %}
-                <div class="form-check">
-                    <input class="form-check-input" type="
-                        {% if question.question_type == 'single' %}radio
-                        {% else %}checkbox{% endif %}" 
-                        name="question_{{ question.id }}" 
-                        value="{{ answer.id }}" 
-                        id="answer_{{ answer.id }}">
+                <div class="form-check mb-2">
+                    {% if question.question_type == 'single' %}
+                        <input class="form-check-input" type="radio"
+                               name="question_{{ question.id }}"
+                               value="{{ answer.id }}"
+                               id="answer_{{ answer.id }}"
+                               required>
+                    {% else %}
+                        <input class="form-check-input" type="checkbox"
+                               name="question_{{ question.id }}_{{ answer.id }}"
+                               value="{{ answer.id }}"
+                               id="answer_{{ answer.id }}">
+                    {% endif %}
                     <label class="form-check-label" for="answer_{{ answer.id }}">
                         {{ answer.text }}
                     </label>
+                </div>
+                {% empty %}
+                <div class="alert alert-warning">
+                    Нет вариантов ответа для этого вопроса.
                 </div>
                 {% endfor %}
             {% endif %}
@@ -43,4 +53,17 @@
 </div>
 {% endif %}
 
+<style>
+    .card {
+        border: 1px solid #dee2e6;
+        border-radius: 0.25rem;
+    }
+    .card-header {
+        background-color: #f8f9fa;
+        border-bottom: 1px solid #dee2e6;
+    }
+    .form-check-input {
+        margin-top: 0.3em;
+    }
+</style>
 {% endblock %}

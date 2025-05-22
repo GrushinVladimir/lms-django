@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from .models import (CustomUser, StudentProfile, TeacherProfile, 
                     StudentGroup, Course, Subject)
-
+from .models import Test, Question, Answer
 @admin.register(CustomUser)
 class CustomUserAdmin(UserAdmin):
     list_display = ('username', 'email', 'is_student', 'is_teacher')
@@ -27,7 +27,16 @@ class TeacherProfileAdmin(admin.ModelAdmin):
     list_display = ('last_name', 'first_name', 'middle_name', 'position', 'classroom')
     search_fields = ('last_name', 'first_name', 'middle_name')
     list_filter = ('category', 'position')
+class AnswerInline(admin.TabularInline):
+    model = Answer
+    extra = 1
 
+class QuestionAdmin(admin.ModelAdmin):
+    inlines = [AnswerInline]
+
+admin.site.register(Test)
+admin.site.register(Question, QuestionAdmin)
+admin.site.register(Answer)
 admin.site.register(StudentGroup)
 admin.site.register(Course)
 admin.site.register(Subject)
