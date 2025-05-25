@@ -41,29 +41,47 @@ class StudentProfile(models.Model):
         return f"{self.user.get_full_name()} ({self.group})"
 
 class Course(models.Model):
-    name = models.CharField(max_length=100)
+    name = models.CharField(max_length=200)
     teachers = models.ManyToManyField(TeacherProfile)
     student_groups = models.ManyToManyField(StudentGroup)
+    @property
+    def teachers_display(self):
+        return ", ".join([f"{t.last_name} {t.first_name[0]}." for t in self.teachers.all()])
 
+    @property
+    def groups_display(self):
+        return ", ".join([g.group_number for g in self.student_groups.all()])
     def __str__(self):
         return self.name
 
 class Subject(models.Model):
-    name = models.CharField(max_length=100)
+    name = models.CharField(max_length=200)
     course = models.ForeignKey(Course, on_delete=models.CASCADE)
     teachers = models.ManyToManyField(TeacherProfile)
     student_groups = models.ManyToManyField(StudentGroup)
+    @property
+    def teachers_display(self):
+        return ", ".join([f"{t.last_name} {t.first_name[0]}." for t in self.teachers.all()])
 
+    @property
+    def groups_display(self):
+        return ", ".join([g.group_number for g in self.student_groups.all()])
     def __str__(self):
         return self.name
 
 class Chapter(models.Model):
-    name = models.CharField(max_length=100)
+    name = models.CharField(max_length=120)
     subject = models.ForeignKey(Subject, on_delete=models.CASCADE)
     teachers = models.ManyToManyField(TeacherProfile)
     student_groups = models.ManyToManyField(StudentGroup)
     created_at = models.DateTimeField(auto_now_add=True)
 
+    @property
+    def teachers_display(self):
+        return ", ".join([f"{t.last_name} {t.first_name[0]}." for t in self.teachers.all()])
+    @property
+    def teachers_display(self):
+        return ", ".join([f"{t.last_name} {t.first_name[0]}." for t in self.teachers.all()])
     def __str__(self):
         return self.name
 
@@ -85,6 +103,10 @@ class ChapterFile(models.Model):
 
     def is_word(self):
         return self.file_extension() in ['doc', 'docx']
+
+    def is_ppt(self):
+        return self.file_extension() in ['ppt', 'pptx']
+
 
 class Article(models.Model):
     chapter = models.ForeignKey(Chapter, on_delete=models.CASCADE, related_name='articles')
@@ -160,3 +182,22 @@ class TestResult(models.Model):
 
     def get_percentage(self):
         return round((self.score / self.max_score) * 100, 2)
+
+class Video(models.Model):
+    chapter = models.ForeignKey(Chapter, on_delete=models.CASCADE, related_name='videos')
+    title = models.CharField(max_length=200)
+    video_file = models.FileField(upload_to='videos/', null=True, blank=True)
+    video_url = models.URLField(null=True, blank=True)
+    position = models.PositiveIntegerField(default=0)
+
+    def __str__(self):
+        return self.title
+
+class Link(models.Model):
+    chapter = models.ForeignKey(Chapter, on_delete=models.CASCADE, related_name='links')
+    title = models.CharField(max_length=200)
+    url = models.URLField()
+    position = models.PositiveIntegerField(default=0)
+
+    def __str__(self):
+        return self.title

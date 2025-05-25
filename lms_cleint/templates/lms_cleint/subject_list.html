@@ -14,12 +14,14 @@
     <tbody>
         {% for subject in subjects %}
         <tr>
-            <td>{{ subject.name }}</td>
+            <td><a href="{% url 'chapter_list' subject.id %}">{{ subject.name }}</a></td>
             <td title="{{ subject.teachers_display }}">{{ subject.teachers_display }}</td>
             <td>{{ subject.groups_display }}</td>
             <td>
-                <a href="{% url 'chapter_list' subject.id %}" class="btn btn-sm btn-info">Главы</a>
+                <a href="{% url 'chapter_list' subject.id %}" class="btn btn-sm btn-info">Перейти</a>
                 <a href="{% url 'subject_edit' subject.id %}" class="btn btn-sm btn-primary">Редактировать</a>
+                <a href="{% url 'subject_delete' subject.id %}" class="btn btn-sm btn-danger">Удалить</a>
+
             </td>
         </tr>
         {% empty %}

@@ -8,23 +8,233 @@ from django.db import transaction
 from django.forms import inlineformset_factory
 from itertools import chain
 from django.conf import settings
-from lms_cleint.models import Course, Subject, Test, Question, Answer, TestResult, Chapter, ChapterFile, Article, CustomUser
+from lms_cleint.models import Course, Subject, Test, Question, Answer, TestResult, Chapter, ChapterFile, Article, CustomUser, Video,Link
 from lms_cleint.forms import CourseForm, SubjectForm, TestForm, QuestionForm, AnswerForm, AnswerFormSet, ChapterForm, ChapterFileForm, ArticleForm, QuestionFormSet
 import os
 import json
 import numpy as np
 from sentence_transformers import SentenceTransformer
 import logging
-
+from django.contrib import messages
+from django.views.decorators.http import require_GET
+from django.db.models import Max
 logger = logging.getLogger(__name__)
 
+
+# Получение данных для редактирования
+@login_required
+def get_file_data(request, file_id):
+    file = get_object_or_404(ChapterFile, pk=file_id)
+    return JsonResponse({
+        'display_name': file.display_name
+    })
+
+@login_required
+def get_video_data(request, video_id):
+    video = get_object_or_404(Video, pk=video_id)
+    return JsonResponse({
+        'title': video.title,
+        'video_url': video.video_url or ''
+    })
+
+@login_required
+def get_link_data(request, link_id):
+    link = get_object_or_404(Link, pk=link_id)
+    return JsonResponse({
+        'title': link.title,
+        'url': link.url
+    })
+
+# Обновление данных
+@login_required
+def update_file(request):
+    if request.method == 'POST':
+        try:
+            file_id = request.POST.get('file_id')
+            file = get_object_or_404(ChapterFile, pk=file_id)
+
+            file.display_name = request.POST.get('display_name', file.display_name)
+
+            if 'file' in request.FILES:
+                file.file = request.FILES['file']
+
+            file.save()
+            return JsonResponse({'status': 'success'})
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+    return JsonResponse({'status': 'error', 'message': 'Invalid request'}, status=400)
+
+
+
+
+@login_required
+def update_video(request):
+    if request.method == 'POST':
+        try:
+            video_id = request.POST.get('video_id')
+            video = get_object_or_404(Video, pk=video_id)
+
+            video.title = request.POST.get('video_title', video.title)
+
+            if 'video_file' in request.FILES:
+                video.video_file = request.FILES['video_file']
+                video.video_url = ''
+            elif 'video_url' in request.POST and request.POST['video_url']:
+                video.video_url = request.POST['video_url']
+                video.video_file = None
+
+            video.save()
+            return JsonResponse({'status': 'success'})
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+    return JsonResponse({'status': 'error', 'message': 'Invalid request'}, status=400)
+
+@login_required
+def update_link(request):
+    if request.method == 'POST':
+        try:
+            link_id = request.POST.get('link_id')
+            link = get_object_or_404(Link, pk=link_id)
+
+            link.title = request.POST.get('link_title', link.title)
+            link.url = request.POST.get('link_url', link.url)
+
+            link.save()
+            return JsonResponse({'status': 'success'})
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+    return JsonResponse({'status': 'error', 'message': 'Invalid request'}, status=400)
+
+
+
+@login_required
+def upload_video(request, chapter_id):
+    chapter = get_object_or_404(Chapter, pk=chapter_id)
+    if request.method == 'POST':
+        title = request.POST.get('video_title')
+        video_file = request.FILES.get('video_file')
+        video_url = request.POST.get('video_url')
+
+        if not title:
+            return JsonResponse({'status': 'error', 'message': 'Название видео обязательно'}, status=400)
+
+        if not video_file and not video_url:
+            return JsonResponse({'status': 'error', 'message': 'Необходимо загрузить видео или указать ссылку на YouTube'}, status=400)
+
+        # Получаем все материалы главы для определения позиции
+        files = ChapterFile.objects.filter(chapter=chapter)
+        articles = Article.objects.filter(chapter=chapter)
+        tests = Test.objects.filter(chapter=chapter)
+        videos = Video.objects.filter(chapter=chapter)
+        links = Link.objects.filter(chapter=chapter)
+
+        # Находим максимальную позицию среди всех материалов
+        max_position = max(
+            max([f.position for f in files], default=0),
+            max([a.position for a in articles], default=0),
+            max([t.position for t in tests], default=0),
+            max([v.position for v in videos], default=0),
+            max([l.position for l in links], default=0)
+        )
+
+        # Создаем видео с новой позицией
+        video = Video.objects.create(
+            chapter=chapter,
+            title=title,
+            video_file=video_file,
+            video_url=video_url,
+            position=max_position + 1
+        )
+
+        return JsonResponse({'status': 'success'})
+
+    return JsonResponse({'status': 'error', 'message': 'Invalid request'}, status=400)
+
+
+@login_required
+def add_link(request, chapter_id):
+    chapter = get_object_or_404(Chapter, pk=chapter_id)
+    if request.method == 'POST':
+        title = request.POST.get('link_title')
+        url = request.POST.get('link_url')
+
+        if not title or not url:
+            return JsonResponse({'status': 'error', 'message': 'Название и URL обязательны'}, status=400)
+
+        # Получаем все материалы главы для определения позиции
+        files = ChapterFile.objects.filter(chapter=chapter)
+        articles = Article.objects.filter(chapter=chapter)
+        tests = Test.objects.filter(chapter=chapter)
+        videos = Video.objects.filter(chapter=chapter)
+        links = Link.objects.filter(chapter=chapter)
+
+        # Находим максимальную позицию среди всех материалов
+        max_position = max(
+            max([f.position for f in files], default=0),
+            max([a.position for a in articles], default=0),
+            max([t.position for t in tests], default=0),
+            max([v.position for v in videos], default=0),
+            max([l.position for l in links], default=0)
+        )
+
+        # Создаем ссылку с новой позицией
+        link = Link.objects.create(
+            chapter=chapter,
+            title=title,
+            url=url,
+            position=max_position + 1
+        )
+
+        return JsonResponse({'status': 'success'})
+
+    return JsonResponse({'status': 'error', 'message': 'Invalid request'}, status=400)
+
+
+
+@login_required
+def delete_video(request, video_id):
+    video = get_object_or_404(Video, pk=video_id)
+    chapter_id = video.chapter.id
+    video.delete()
+    messages.success(request, 'Видео успешно удалено')
+    return redirect('chapter_detail', chapter_id=chapter_id)
+
+@login_required
+def delete_link(request, link_id):
+    link = get_object_or_404(Link, pk=link_id)
+    chapter_id = link.chapter.id
+    link.delete()
+    messages.success(request, 'Ссылка успешно удалена')
+    return redirect('chapter_detail', chapter_id=chapter_id)
+
+
+
+@require_GET
+def get_groups_for_subject(request, course_id):
+    course = Course.objects.get(pk=course_id)
+    groups = course.student_groups.all()
+    data = [{'id': group.id, 'name': group.group_number} for group in groups]
+    return JsonResponse(data, safe=False)
+
+@require_GET
+def get_groups_for_chapter(request, subject_id):
+    subject = Subject.objects.get(pk=subject_id)
+    groups = subject.student_groups.all()
+    data = [{'id': group.id, 'name': group.group_number} for group in groups]
+    return JsonResponse(data, safe=False)
 
 def view_test_result(request, result_id):
     result = get_object_or_404(TestResult, pk=result_id)
     return render(request, 'lms_cleint/view_test_result.html', {'result': result})
 
-# Инициализация модели (уберите условие для DEBUG при тестировании)
-model = SentenceTransformer('sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2')
+#рефакторинг для ускорения запуска модели(вызываем, когда она необходима) Инициализация модели
+_model = None
+
+def get_model():
+    global _model
+    if _model is None:
+        _model = SentenceTransformer('sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2')
+    return _model
 
 def preprocess_text(text):
     """Нормализация текста перед сравнением"""
@@ -34,6 +244,7 @@ def preprocess_text(text):
 
 def check_text_similarity(user_answer, correct_answer):
     """Сравнение текстов с помощью SentenceTransformer"""
+    model = get_model()
     try:
         emb_user = model.encode(user_answer)
         emb_correct = model.encode(correct_answer)
@@ -305,8 +516,27 @@ def create_test(request, chapter_id):
             with transaction.atomic():
                 test = form.save(commit=False)
                 test.chapter = chapter
+
+                # Получаем все материалы главы для определения позиции
+                files = ChapterFile.objects.filter(chapter=chapter)
+                articles = Article.objects.filter(chapter=chapter)
+                tests = Test.objects.filter(chapter=chapter)
+                videos = Video.objects.filter(chapter=chapter)
+                links = Link.objects.filter(chapter=chapter)
+
+                # Находим максимальную позицию среди всех материалов
+                max_position = max(
+                    max([f.position for f in files], default=0),
+                    max([a.position for a in articles], default=0),
+                    max([t.position for t in tests], default=0),
+                    max([v.position for v in videos], default=0),
+                    max([l.position for l in links], default=0)
+                )
+
+                test.position = max_position + 1
                 test.save()
 
+                # Остальной код создания теста
                 for i, question_form in enumerate(question_formset):
                     if question_form.cleaned_data.get('DELETE', False):
                         continue
@@ -317,9 +547,8 @@ def create_test(request, chapter_id):
 
                     # Обработка ответов
                     question_type = question.question_type
-                    
+
                     if question_type in ['single', 'multiple']:
-                        # Обработка вариантов ответов
                         answer_prefix = f'questions-{i}-answers'
                         answer_count = 0
 
@@ -339,12 +568,11 @@ def create_test(request, chapter_id):
                                     is_correct=is_correct
                                 )
                             answer_count += 1
-                    
+
                     elif question_type == 'text':
-                        # Обработка текстового ответа
                         correct_answer_key = f'questions-{i}-correct_answer'
                         correct_answer = request.POST.get(correct_answer_key, '').strip()
-                        
+
                         if correct_answer:
                             Answer.objects.create(
                                 question=question,
@@ -352,6 +580,7 @@ def create_test(request, chapter_id):
                                 is_correct=True
                             )
 
+                messages.success(request, 'Тест успешно создан')
                 return redirect('chapter_detail', chapter_id=chapter.id)
     else:
         form = TestForm()
@@ -420,7 +649,7 @@ def edit_test(request, test_id):
                 # Delete marked questions
                 for question in question_formset.deleted_objects:
                     question.delete()
-
+                messages.success(request, 'Тест успешно удален')
                 return redirect('chapter_detail', chapter_id=test.chapter.id)
     else:
         form = TestForm(instance=test)
@@ -437,6 +666,8 @@ def delete_test(request, test_id):
     test = get_object_or_404(Test, pk=test_id)
     chapter_id = test.chapter.id
     test.delete()
+    messages.success(request, 'Тест успешно удален')
+
     return redirect('chapter_detail', chapter_id=chapter_id)
 
 @login_required
@@ -493,7 +724,11 @@ def delete_question(request, question_id):
     question.delete()
     return redirect('edit_test', test_id=test_id)
 
+# Обновленный обработчик порядка материалов
+
+
 @csrf_exempt
+@login_required
 def update_materials_order(request, chapter_id):
     if request.method == 'POST':
         try:
@@ -505,30 +740,24 @@ def update_materials_order(request, chapter_id):
                 for index, item_id in enumerate(order, start=1):
                     if item_id.startswith('file_'):
                         file_id = item_id.replace('file_', '')
-                        ChapterFile.objects.filter(
-                            id=file_id,
-                            chapter=chapter
-                        ).update(position=index)
+                        ChapterFile.objects.filter(id=file_id, chapter=chapter).update(position=index)
                     elif item_id.startswith('article_'):
                         article_id = item_id.replace('article_', '')
-                        Article.objects.filter(
-                            id=article_id,
-                            chapter=chapter
-                        ).update(position=index)
+                        Article.objects.filter(id=article_id, chapter=chapter).update(position=index)
                     elif item_id.startswith('test_'):
                         test_id = item_id.replace('test_', '')
-                        Test.objects.filter(
-                            id=test_id,
-                            chapter=chapter
-                        ).update(position=index)
+                        Test.objects.filter(id=test_id, chapter=chapter).update(position=index)
+                    elif item_id.startswith('video_'):
+                        video_id = item_id.replace('video_', '')
+                        Video.objects.filter(id=video_id, chapter=chapter).update(position=index)
+                    elif item_id.startswith('link_'):
+                        link_id = item_id.replace('link_', '')
+                        Link.objects.filter(id=link_id, chapter=chapter).update(position=index)
 
             return JsonResponse({'status': 'success'})
         except Exception as e:
-            return JsonResponse(
-                {'status': 'error', 'message': str(e)},
-                status=400
-            )
-    return JsonResponse({'status': 'error'}, status=400)
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+    return JsonResponse({'status': 'error', 'message': 'Invalid request'}, status=400)
 
 @login_required
 def edit_article(request, article_id):
@@ -537,9 +766,11 @@ def edit_article(request, article_id):
         form = ArticleForm(request.POST, instance=article)
         if form.is_valid():
             form.save()
+            messages.success(request, 'Статья успешно обновлена')
             return redirect('chapter_detail', chapter_id=article.chapter.id)
     else:
         form = ArticleForm(instance=article)
+    
     return render(request, 'lms_cleint/article_form.html', {
         'form': form,
         'chapter': article.chapter
@@ -550,6 +781,7 @@ def delete_article(request, article_id):
     article = get_object_or_404(Article, pk=article_id)
     chapter_id = article.chapter.id
     article.delete()
+    messages.success(request, 'Статья успешно удалена')
     return redirect('chapter_detail', chapter_id=chapter_id)
 
 def save_uploaded_file(uploaded_file):
@@ -583,10 +815,26 @@ def create_article(request, chapter_id):
         if form.is_valid():
             article = form.save(commit=False)
             article.chapter = chapter
-            # Get the last material in the chapter and set the position
-            last_material = Article.objects.filter(chapter=chapter).order_by('-position').first()
-            article.position = last_material.position + 1 if last_material else 1
+
+            # Получаем все материалы главы для определения позиции
+            files = ChapterFile.objects.filter(chapter=chapter)
+            articles = Article.objects.filter(chapter=chapter)
+            tests = Test.objects.filter(chapter=chapter)
+            videos = Video.objects.filter(chapter=chapter)
+            links = Link.objects.filter(chapter=chapter)
+
+            # Находим максимальную позицию среди всех материалов
+            max_position = max(
+                max([f.position for f in files], default=0),
+                max([a.position for a in articles], default=0),
+                max([t.position for t in tests], default=0),
+                max([v.position for v in videos], default=0),
+                max([l.position for l in links], default=0)
+            )
+
+            article.position = max_position + 1
             article.save()
+            messages.success(request, 'Статья успешно создана')
             return redirect('chapter_detail', chapter_id=chapter.id)
     else:
         form = ArticleForm()
@@ -594,6 +842,7 @@ def create_article(request, chapter_id):
         'form': form,
         'chapter': chapter
     })
+
 
 @login_required
 def article_detail(request, article_id):
@@ -605,12 +854,14 @@ def article_detail(request, article_id):
 @login_required
 def chapter_list(request, subject_id):
     subject = get_object_or_404(Subject, pk=subject_id)
-    chapters = Chapter.objects.filter(subject=subject).prefetch_related('teachers', 'student_groups')
+    chapters = Chapter.objects.filter(subject=subject).prefetch_related(
+        'teachers',
+        'student_groups'
+    )
     return render(request, 'lms_cleint/chapter_list.html', {
         'subject': subject,
         'chapters': chapters
     })
-
 @login_required
 def chapter_create(request, subject_id):
     subject = get_object_or_404(Subject, pk=subject_id)
@@ -629,21 +880,29 @@ def chapter_create(request, subject_id):
 @login_required
 def chapter_detail(request, chapter_id):
     chapter = get_object_or_404(Chapter, pk=chapter_id)
+
+    # Получаем все материалы главы
     files = ChapterFile.objects.filter(chapter=chapter).order_by('position')
     articles = Article.objects.filter(chapter=chapter).order_by('position')
     tests = Test.objects.filter(chapter=chapter).order_by('position')
+    videos = Video.objects.filter(chapter=chapter).order_by('position')
+    links = Link.objects.filter(chapter=chapter).order_by('position')
 
-    # Add material_type to each object
+    # Добавляем тип материала к каждому объекту
     for f in files:
         f.material_type = 'file'
     for a in articles:
         a.material_type = 'article'
     for t in tests:
         t.material_type = 'test'
+    for v in videos:
+        v.material_type = 'video'
+    for l in links:
+        l.material_type = 'link'
 
-    # Combine and sort
+    # Объединяем и сортируем по позиции
     materials = sorted(
-        chain(files, articles, tests),
+        chain(files, articles, tests, videos, links),
         key=lambda x: x.position
     )
 
@@ -652,9 +911,34 @@ def chapter_detail(request, chapter_id):
         if form.is_valid():
             file = form.save(commit=False)
             file.chapter = chapter
-            file.position = materials[-1].position + 1 if materials else 1
+
+            # Получаем максимальную позицию среди всех материалов
+            max_position = max(
+                max([f.position for f in files], default=0),
+                max([a.position for a in articles], default=0),
+                max([t.position for t in tests], default=0),
+                max([v.position for v in videos], default=0),
+                max([l.position for l in links], default=0)
+            )
+
+            file.position = max_position + 1
             file.save()
+
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return JsonResponse({
+                    'status': 'success',
+                    'message': 'Файл успешно загружен'
+                })
+
+            messages.success(request, 'Файл успешно загружен')
             return redirect('chapter_detail', chapter_id=chapter.id)
+        else:
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return JsonResponse({
+                    'status': 'error',
+                    'message': 'Ошибка валидации формы',
+                    'errors': form.errors
+                }, status=400)
     else:
         form = ChapterFileForm()
 
@@ -664,11 +948,16 @@ def chapter_detail(request, chapter_id):
         'form': form
     })
 
+
+
+
 @login_required
 def delete_file(request, file_id):
     file = get_object_or_404(ChapterFile, pk=file_id)
     chapter_id = file.chapter.id
     file.delete()
+    messages.success(request, 'Файл успешно удален')
+
     return redirect('chapter_detail', chapter_id=chapter_id)
 
 def custom_logout(request):
@@ -705,6 +994,27 @@ def course_create(request):
         form = CourseForm()
     return render(request, 'lms_cleint/course_form.html', {'form': form})
 
+
+@login_required
+def chapter_delete(request, chapter_id):
+    chapter = get_object_or_404(Chapter, pk=chapter_id)
+    subject_id = chapter.subject.id
+    chapter.delete()
+    return redirect('chapter_list', subject_id=subject_id)
+
+@login_required
+def course_delete(request, course_id):
+    course = get_object_or_404(Course, pk=course_id)
+    course.delete()
+    return redirect('course_list')
+
+@login_required
+def subject_delete(request, subject_id):
+    subject = get_object_or_404(Subject, pk=subject_id)
+    course_id = subject.course.id
+    subject.delete()
+    return redirect('subject_list', course_id=course_id)
+
 @login_required
 def course_edit(request, pk):
     course = get_object_or_404(Course, pk=pk)
@@ -735,6 +1045,7 @@ def subject_create(request, course_id):
             subject = form.save(commit=False)
             subject.course = course
             subject.save()
+            form.save_m2m()  # Сохраняем связанные объекты
             return redirect('subject_list', course_id=course.id)
     else:
         form = SubjectForm(course_id=course_id)

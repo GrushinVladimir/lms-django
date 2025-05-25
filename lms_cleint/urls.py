@@ -1,5 +1,7 @@
 from django.urls import path
 from . import views
+from django.conf.urls.static import static
+from django.conf import settings
 
 urlpatterns = [
     path('', views.login_view, name='login'),
@@ -37,4 +39,30 @@ urlpatterns = [
     path('test/<int:test_id>/result/', views.test_result, name='test_result'),
     path('test/result/<int:result_id>/', views.view_test_result, name='view_test_result'),
     path('teacher/dashboard/', views.teacher_dashboard, name='teacher_dashboard'),
-]
+
+    path('get_groups_for_subject/<int:course_id>/', views.get_groups_for_subject, name='get_groups_for_subject'),
+    path('get_groups_for_chapter/<int:subject_id>/', views.get_groups_for_chapter, name='get_groups_for_chapter'),
+    path('chapter/<int:chapter_id>/delete/', views.chapter_delete, name='chapter_delete'),
+    path('course/<int:course_id>/delete/', views.course_delete, name='course_delete'),
+    path('subject/<int:subject_id>/delete/', views.subject_delete, name='subject_delete'),
+
+    path('chapter/<int:chapter_id>/upload_video/', views.upload_video, name='upload_video'),
+    path('chapter/<int:chapter_id>/add_link/', views.add_link, name='add_link'),
+    path('delete_video/<int:video_id>/', views.delete_video, name='delete_video'),
+    path('delete_link/<int:link_id>/', views.delete_link, name='delete_link'),
+    path('chapter/<int:chapter_id>/upload_file/', views.chapter_detail, name='upload_file'),
+    # Получение данных для редактирования
+    path('file/<int:file_id>/get/', views.get_file_data, name='get_file_data'),
+    path('video/<int:video_id>/get/', views.get_video_data, name='get_video_data'),
+    path('link/<int:link_id>/get/', views.get_link_data, name='get_link_data'),
+    
+    # Обновление данных
+    path('chapter/file/update/', views.update_file, name='update_file'),
+    path('chapter/video/update/', views.update_video, name='update_video'),
+    path('chapter/link/update/', views.update_link, name='update_link'),
+  
+    path('chapter/file/<int:file_id>/get/', views.get_file_data, name='get_file'),
+    path('chapter/video/<int:video_id>/get/', views.get_video_data, name='get_video'),
+    path('chapter/link/<int:link_id>/get/', views.get_link_data, name='get_link'),
+
+] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

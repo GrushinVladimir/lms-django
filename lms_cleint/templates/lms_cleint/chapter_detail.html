@@ -20,6 +20,36 @@
         display: flex;
         align-items: center;
     }
+    .video-modal {
+        display: none;
+        position: fixed;
+        z-index: 1;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        overflow: auto;
+        background-color: rgba(0,0,0,0.5);
+    }
+    .video-modal-content {
+        background-color: #fefefe;
+        margin: 15% auto;
+        padding: 20px;
+        border: 1px solid #888;
+        width: 80%;
+    }
+    .close {
+        color: #aaa;
+        float: right;
+        font-size: 28px;
+        font-weight: bold;
+    }
+    .close:hover,
+    .close:focus {
+        color: black;
+        text-decoration: none;
+        cursor: pointer;
+    }
 </style>
 {% endblock %}
 {% block content %}
@@ -30,6 +60,12 @@
     <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addFileModal">
         Добавить файл
     </button>
+    <button type="button" class="btn btn-secondary" data-bs-toggle="modal" data-bs-target="#addVideoModal">
+        Добавить видео
+    </button>
+    <button type="button" class="btn btn-info" data-bs-toggle="modal" data-bs-target="#addLinkModal">
+        Добавить ссылку
+    </button>
     <a href="{% url 'create_article' chapter.id %}" class="btn btn-success">
         Создать статью
     </a>
@@ -39,11 +75,10 @@
 </div>
 
 <!-- Объединенный список материалов -->
-<!-- Обновим список материалов -->
 <ul id="materials-list" class="list-group" data-chapter-id="{{ chapter.id }}">
     {% for material in materials %}
-    <li class="list-group-item" 
-        data-id="{% if material.material_type == 'file' %}file_{% elif material.material_type == 'article' %}article_{% else %}test_{% endif %}{{ material.id }}" 
+    <li class="list-group-item"
+        data-id="{% if material.material_type == 'file' %}file_{% elif material.material_type == 'article' %}article_{% elif material.material_type == 'test' %}test_{% elif material.material_type == 'video' %}video_{% elif material.material_type == 'link' %}link_{% endif %}{{ material.id }}"
         data-type="{{ material.material_type }}">
         <div class="material-content">
             <strong>
@@ -51,22 +86,33 @@
                     {{ material.display_name }}
                 {% elif material.material_type == 'article' %}
                     {{ material.title }}
-                {% else %}
+                {% elif material.material_type == 'test' %}
                     {{ material.title }}
+                {% elif material.material_type == 'video' %}
+                    {{ material.title }}
+                {% elif material.material_type == 'link' %}
+                    <a href="{{ material.url }}" target="_blank">{{ material.title }}</a>
                 {% endif %}
             </strong>
-            <span class="badge 
+            <span class="badge
                 {% if material.material_type == 'file' %}bg-primary
                 {% elif material.material_type == 'article' %}bg-success
-                {% else %}bg-info{% endif %}">
+                {% elif material.material_type == 'test' %}bg-info
+                {% elif material.material_type == 'video' %}bg-warning
+                {% elif material.material_type == 'link' %}bg-dark{% endif %}">
                 {% if material.material_type == 'file' %}
                     {% if material.is_pdf %}PDF
                     {% elif material.is_word %}Word
+                    {% elif material.is_ppt %}PowerPoint
                     {% else %}Файл{% endif %}
                 {% elif material.material_type == 'article' %}
                     Статья
-                {% else %}
+                {% elif material.material_type == 'test' %}
                     Тест
+                {% elif material.material_type == 'video' %}
+                    Видео
+                {% elif material.material_type == 'link' %}
+                    Ссылка
                 {% endif %}
             </span>
         </div>
@@ -78,15 +124,24 @@
                     {% else %}
                     <a href="{{ material.file.url }}" class="btn btn-sm btn-info" download>Скачать</a>
                     {% endif %}
+                    <button class="btn btn-sm btn-warning edit-file-btn" data-id="{{ material.id }}">Редактировать</button>
                     <a href="{% url 'delete_file' material.id %}" class="btn btn-sm btn-danger">Удалить</a>
                 {% elif material.material_type == 'article' %}
                     <a href="{% url 'article_detail' material.id %}" class="btn btn-sm btn-info">Просмотреть</a>
                     <a href="{% url 'edit_article' material.id %}" class="btn btn-sm btn-warning">Редактировать</a>
                     <a href="{% url 'delete_article' material.id %}" class="btn btn-sm btn-danger">Удалить</a>
-                {% else %}
+                {% elif material.material_type == 'test' %}
                     <a href="{% url 'view_test' material.id %}" class="btn btn-sm btn-info">Просмотреть</a>
                     <a href="{% url 'edit_test' material.id %}" class="btn btn-sm btn-warning">Редактировать</a>
                     <a href="{% url 'delete_test' material.id %}" class="btn btn-sm btn-danger">Удалить</a>
+                {% elif material.material_type == 'video' %}
+                    <button class="btn btn-sm btn-info" onclick="openVideoModal('{{ material.video_url }}')">Просмотреть</button>
+                    <button class="btn btn-sm btn-warning edit-video-btn" data-id="{{ material.id }}">Редактировать</button>
+                    <a href="{% url 'delete_video' material.id %}" class="btn btn-sm btn-danger">Удалить</a>
+                {% elif material.material_type == 'link' %}
+                    <a href="{{ material.url }}" class="btn btn-sm btn-info" target="_blank">Открыть</a>
+                    <button class="btn btn-sm btn-warning edit-link-btn" data-id="{{ material.id }}">Редактировать</button>
+                    <a href="{% url 'delete_link' material.id %}" class="btn btn-sm btn-danger">Удалить</a>
                 {% endif %}
             </div>
             <div class="drag-handle">⋮</div>
@@ -115,7 +170,7 @@
                     <div class="mb-3">
                         <label for="{{ form.file.id_for_label }}" class="form-label">{{ form.file.label }}</label>
                         {{ form.file }}
-                        <div class="form-text">Поддерживаются файлы PDF и Word</div>
+                        <div class="form-text">Поддерживаются файлы PDF, Word и PowerPoint</div>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -124,6 +179,169 @@
                 </div>
             </form>
         </div>
+    </div>
+</div>
+
+<!-- Модальное окно для добавления видео -->
+<div class="modal fade" id="addVideoModal" tabindex="-1" aria-labelledby="addVideoModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addVideoModalLabel">Добавить видео</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="post" enctype="multipart/form-data" id="videoUploadForm">
+                <div class="modal-body">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="video_title" class="form-label">Название видео</label>
+                        <input type="text" class="form-control" id="video_title" name="video_title" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="video_file" class="form-label">Загрузить видео</label>
+                        <input type="file" class="form-control" id="video_file" name="video_file" accept="video/*">
+                    </div>
+                    <div class="mb-3">
+                        <label for="video_url" class="form-label">Или вставить ссылку на YouTube</label>
+                        <input type="url" class="form-control" id="video_url" name="video_url" placeholder="https://www.youtube.com/watch?v=...">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+                    <button type="submit" class="btn btn-primary">Добавить</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно для добавления ссылки -->
+<div class="modal fade" id="addLinkModal" tabindex="-1" aria-labelledby="addLinkModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addLinkModalLabel">Добавить ссылку</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="post" id="linkUploadForm">
+                <div class="modal-body">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="link_title" class="form-label">Название ссылки</label>
+                        <input type="text" class="form-control" id="link_title" name="link_title" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="link_url" class="form-label">URL</label>
+                        <input type="url" class="form-control" id="link_url" name="link_url" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+                    <button type="submit" class="btn btn-primary">Добавить</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<!-- Модальное окно для редактирования файла -->
+<div class="modal fade" id="editFileModal" tabindex="-1" aria-labelledby="editFileModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editFileModalLabel">Редактировать файл</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="post" enctype="multipart/form-data" id="editFileForm">
+                <div class="modal-body">
+                    {% csrf_token %}
+                    <input type="hidden" id="editFileId" name="file_id">
+                    <div class="mb-3">
+                        <label for="editFileName" class="form-label">Название файла</label>
+                        <input type="text" class="form-control" id="editFileName" name="display_name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editFile" class="form-label">Файл</label>
+                        <input type="file" class="form-control" id="editFile" name="file">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+                    <button type="submit" class="btn btn-primary">Сохранить</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно для редактирования видео -->
+<div class="modal fade" id="editVideoModal" tabindex="-1" aria-labelledby="editVideoModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editVideoModalLabel">Редактировать видео</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="post" enctype="multipart/form-data" id="editVideoForm">
+                <div class="modal-body">
+                    {% csrf_token %}
+                    <input type="hidden" id="editVideoId" name="video_id">
+                    <div class="mb-3">
+                        <label for="editVideoTitle" class="form-label">Название видео</label>
+                        <input type="text" class="form-control" id="editVideoTitle" name="video_title" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editVideoFile" class="form-label">Загрузить видео</label>
+                        <input type="file" class="form-control" id="editVideoFile" name="video_file" accept="video/*">
+                    </div>
+                    <div class="mb-3">
+                        <label for="editVideoUrl" class="form-label">Или вставить ссылку на YouTube</label>
+                        <input type="url" class="form-control" id="editVideoUrl" name="video_url" placeholder="https://www.youtube.com/watch?v=...">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+                    <button type="submit" class="btn btn-primary">Сохранить</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно для редактирования ссылки -->
+<div class="modal fade" id="editLinkModal" tabindex="-1" aria-labelledby="editLinkModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editLinkModalLabel">Редактировать ссылку</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="post" id="editLinkForm">
+                <div class="modal-body">
+                    {% csrf_token %}
+                    <input type="hidden" id="editLinkId" name="link_id">
+                    <div class="mb-3">
+                        <label for="editLinkTitle" class="form-label">Название ссылки</label>
+                        <input type="text" class="form-control" id="editLinkTitle" name="link_title" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editLinkUrl" class="form-label">URL</label>
+                        <input type="url" class="form-control" id="editLinkUrl" name="link_url" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+                    <button type="submit" class="btn btn-primary">Сохранить</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно для просмотра видео -->
+<div id="videoModal" class="video-modal">
+    <div class="video-modal-content">
+        <span class="close" onclick="closeVideoModal()">&times;</span>
+        <div id="videoContainer"></div>
     </div>
 </div>
 
@@ -137,7 +355,181 @@
 <!-- Подключаем SortableJS -->
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.14.0/Sortable.min.js"></script>
 <script>
+
+
+
+// Функция обновления порядка материалов
+function updateMaterialsOrder() {
+    var order = Array.from(materialsList.children).map(function(item) {
+        return item.dataset.id;
+    });
+
+    fetch('/chapter/' + materialsList.dataset.chapterId + '/update_materials_order/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': '{{ csrf_token }}',
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: JSON.stringify({order: order})
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status !== 'success') {
+            console.error('Ошибка при сохранении порядка');
+        }
+    });
+}
+
+    // Обработчики кнопок редактирования
+    document.querySelectorAll('.edit-file-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const fileId = this.dataset.id;
+            fetch(`/chapter/file/${fileId}/get/`, {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('editFileId').value = fileId;
+                document.getElementById('editFileName').value = data.display_name;
+                new bootstrap.Modal(document.getElementById('editFileModal')).show();
+            });
+        });
+    });
+
+    document.querySelectorAll('.edit-video-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const videoId = this.dataset.id;
+            fetch(`/chapter/video/${videoId}/get/`, {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('editVideoId').value = videoId;
+                document.getElementById('editVideoTitle').value = data.title;
+                document.getElementById('editVideoUrl').value = data.video_url || '';
+                new bootstrap.Modal(document.getElementById('editVideoModal')).show();
+            });
+        });
+    });
+
+    document.querySelectorAll('.edit-link-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const linkId = this.dataset.id;
+            fetch(`/chapter/link/${linkId}/get/`, {
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('editLinkId').value = linkId;
+                document.getElementById('editLinkTitle').value = data.title;
+                document.getElementById('editLinkUrl').value = data.url;
+                new bootstrap.Modal(document.getElementById('editLinkModal')).show();
+            });
+        });
+    });
+
+   // Обработчики форм редактирования
+document.getElementById('editFileForm')?.addEventListener('submit', handleEditFormSubmit);
+document.getElementById('editVideoForm')?.addEventListener('submit', handleEditFormSubmit);
+document.getElementById('editLinkForm')?.addEventListener('submit', handleEditFormSubmit);
+
+function handleEditFormSubmit(e) {
+    e.preventDefault();
+    const form = e.target;
+    const formData = new FormData(form);
+    const url = form.id === 'editFileForm' ? '/chapter/file/update/' :
+                form.id === 'editVideoForm' ? '/chapter/video/update/' :
+                '/chapter/link/update/';
+
+    fetch(url, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: formData
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.status === 'success') {
+            location.reload();
+        } else {
+            alert(data.message || 'Ошибка при сохранении');
+        }
+    })
+    .catch(error => {
+        alert('Произошла ошибка: ' + error.message);
+    });
+}
+
+
+
+
+    // Функции для работы с видео
+    function openVideoModal(videoUrl) {
+        const modal = document.getElementById('videoModal');
+        const videoContainer = document.getElementById('videoContainer');
+
+        if (videoUrl.includes('youtube.com') || videoUrl.includes('youtu.be')) {
+            let videoId = videoUrl.split('v=')[1];
+            if (!videoId) videoId = videoUrl.split('youtu.be/')[1];
+            if (videoId) videoId = videoId.split('&')[0];
+            
+            videoContainer.innerHTML = `
+                <iframe width="100%" height="400" 
+                    src="https://www.youtube.com/embed/${videoId}" 
+                    frameborder="0" 
+                    allowfullscreen>
+                </iframe>`;
+        } else {
+            videoContainer.innerHTML = `
+                <video width="100%" height="400" controls>
+                    <source src="${videoUrl}" type="video/mp4">
+                    Ваш браузер не поддерживает видео.
+                </video>`;
+        }
+
+        modal.style.display = "block";
+    }
+
+    function closeVideoModal() {
+        document.getElementById('videoModal').style.display = "none";
+        document.getElementById('videoContainer').innerHTML = '';
+    }
+
+    window.onclick = function(event) {
+        if (event.target == document.getElementById('videoModal')) {
+            closeVideoModal();
+        }
+    }
+
+
+
+
 document.addEventListener('DOMContentLoaded', function() {
+    // Инициализация только статических toast-уведомлений из messages
+    var staticToastElList = [].slice.call(document.querySelectorAll('.toast'))
+    var staticToastList = staticToastElList.map(function (toastEl) {
+        var toast = new bootstrap.Toast(toastEl)
+        toast.show()
+        return toast
+    })
+
     var materialsList = document.getElementById('materials-list');
     var chapterId = materialsList.dataset.chapterId;
 
@@ -145,7 +537,7 @@ document.addEventListener('DOMContentLoaded', function() {
         new Sortable(materialsList, {
             animation: 150,
             ghostClass: 'sortable-ghost',
-            handle: '.drag-handle', // Указываем класс элемента, за который можно тянуть
+            handle: '.drag-handle',
             onEnd: function (evt) {
                 var order = Array.from(materialsList.children).map(function(item) {
                     return item.dataset.id;
@@ -168,27 +560,154 @@ document.addEventListener('DOMContentLoaded', function() {
                 })
                 .then(data => {
                     if (data.status === 'success') {
-                        console.log('Order updated successfully');
-                        showToast('Порядок материалов сохранён');
+                        showDynamicToast('Порядок сохранён', 'success');
                     } else {
-                        console.error('Error updating order:', data.message);
-                        showToast('Ошибка при сохранении порядка', 'error');
+                        showDynamicToast('Ошибка при сохранении порядка', 'danger');
                     }
                 })
                 .catch(error => {
-                    console.error('Error:', error);
-                    showToast('Ошибка при сохранении порядка', 'error');
+                    showDynamicToast('Ошибка при сохранении порядка', 'danger');
                 });
             }
         });
     }
+
+    // Функция для показа динамических toast-уведомлений (только для изменения порядка)
+    function showDynamicToast(message, type = 'success') {
+        const toastContainer = document.querySelector('.toast-container');
+        const toastId = 'toast-' + Date.now();
+
+        const toastHTML = `
+        <div id="${toastId}" class="toast align-items-center border-0" role="alert" aria-live="assertive" aria-atomic="true" style="background:#d1e7dd; color:#0a3622;">
+            <div class="d-flex">
+                <div class="toast-body">
+                    ${message}
+                </div>
+                <button type="button" class="btn-close btn-close-black me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+        </div>`;
+
+        toastContainer.insertAdjacentHTML('beforeend', toastHTML);
+        const toastEl = document.getElementById(toastId);
+        const toast = new bootstrap.Toast(toastEl);
+        toast.show();
+
+        // Удаляем toast после скрытия
+        toastEl.addEventListener('hidden.bs.toast', function () {
+            toastEl.remove();
+        });
+    }
+
+    // Обработка формы загрузки видео
+    document.getElementById('videoUploadForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        var formData = new FormData(this);
+
+        fetch('/chapter/' + chapterId + '/upload_video/', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: formData
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.status === 'success') {
+                showDynamicToast('Видео успешно загружено', 'success');
+                location.reload();
+            } else {
+                showDynamicToast('Ошибка при загрузке видео', 'danger');
+            }
+        })
+        .catch(error => {
+            showDynamicToast('Ошибка при загрузке видео', 'danger');
+        });
+    });
+// Затем обработчик формы
+document.getElementById('fileUploadForm')?.addEventListener('submit', function(e) {
+    e.preventDefault();
+    var formData = new FormData(this);
+    var chapterId = document.getElementById('materials-list').dataset.chapterId;
+
+    fetch('/chapter/' + chapterId + '/upload_file/', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: formData
+    })
+    .then(response => {
+        if (!response.ok) {
+            return response.json().then(err => { throw err; });
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.status === 'success') {
+            showDynamicToast('Файл успешно загружен', 'success');
+            var modal = bootstrap.Modal.getInstance(document.getElementById('addFileModal'));
+            modal.hide();
+            location.reload();
+        } else {
+            showDynamicToast(data.message || 'Ошибка при загрузке файла', 'danger');
+        }
+    })
+    .catch(error => {
+        const errorMsg = error.message || 'Ошибка при загрузке файла';
+        showDynamicToast(errorMsg, 'danger');
+        console.error('Error:', error);
+    });
+});
+    // Обработка формы добавления ссылки
+    document.getElementById('linkUploadForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        var formData = new FormData(this);
+
+        fetch('/chapter/' + chapterId + '/add_link/', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: formData
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.status === 'success') {
+                showDynamicToast('Ссылка успешно добавлена', 'success');
+                location.reload();
+            } else {
+                showDynamicToast('Ошибка при добавлении ссылки', 'danger');
+            }
+        })
+        .catch(error => {
+            showDynamicToast('Ошибка при добавлении ссылки', 'danger');
+        });
+    });
 });
 
-// Функция для показа уведомлений
-function showToast(message, type = 'success') {
-    // Реализация зависит от вашей системы уведомлений
-    // Например, можно использовать Bootstrap Toast или просто alert
-    alert(message);
+
+
+
+
+// Закрытие модального окна при клике вне его
+window.onclick = function(event) {
+    var modal = document.getElementById('videoModal');
+    if (event.target == modal) {
+        closeVideoModal();
+    }
 }
 </script>
 {% endblock %}

@@ -26,12 +26,30 @@
         .teacher-info:hover {
             cursor: help;
         }
+        .toast {
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+    transition: all 0.3s ease;
+    padding-right: 1rem;;
+}
+.toast-body{
+    padding:1rem;
+}
     </style>
     
     {% block extra_css %}{% endblock %}
 </head>
 <body>
     <div class="container">
+    <!--Уведомления-->
+<div class="position-fixed top-0 p-3" style="z-index: 11; right: 0px; width: 400px;" >
+  <div class="toast-container">
+    {% for message in messages %}
+    <div class="toast align-items-center text-white bg-{% if message.tags %}{{ message.tags }}{% else %}info{% endif %} border-0" role="alert" aria-live="assertive" aria-atomic="true">
+
+    </div>
+    {% endfor %}
+  </div>
+</div>
         <!-- Навигационная панель -->
         <nav class="navbar navbar-expand-lg navbar-light bg-light rounded">
             <div class="container-fluid">

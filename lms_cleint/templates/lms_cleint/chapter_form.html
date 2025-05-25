@@ -33,4 +33,25 @@
     <button type="submit" class="btn btn-primary">Сохранить</button>
     <a href="{% url 'chapter_list' subject.id %}" class="btn btn-secondary">Отмена</a>
 </form>
+<script>
+$(document).ready(function() {
+    $('#id_subject').change(function() {
+        var subjectId = $(this).val();
+        $.ajax({
+            url: '/get_groups_for_chapter/' + subjectId + '/',
+            type: 'GET',
+            success: function(data) {
+                var groupsSelect = $('#id_student_groups');
+                groupsSelect.empty();
+                $.each(data, function(index, group) {
+                    groupsSelect.append($('<option>', {
+                        value: group.id,
+                        text: group.name
+                    }));
+                });
+            }
+        });
+    });
+});
+</script>
 {% endblock %}

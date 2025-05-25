@@ -60,10 +60,32 @@ class ChapterForm(forms.ModelForm):
 class ChapterFileForm(forms.ModelForm):
     class Meta:
         model = ChapterFile
-        fields = ['file', 'display_name']
-        widgets = {
-            'file': forms.FileInput(attrs={'accept': '.pdf,.doc,.docx'})
-        }
+        fields = ['display_name', 'file']
+
+    def clean_file(self):
+        file = self.cleaned_data.get('file')
+        if file:
+            ext = file.name.split('.')[-1].lower()
+            print(f"Uploaded file: {file.name}, extension: {ext}")  # Логирование
+            valid_extensions = ['pdf', 'doc', 'docx', 'pptx', 'ppt']
+            
+            if ext not in valid_extensions:
+                print(f"Invalid extension: {ext}")  # Логирование
+                raise forms.ValidationError(
+                    'Поддерживаются только файлы: ' + ', '.join(valid_extensions)
+                )
+            
+            # Проверка размера файла (например, 10MB)
+            max_size = 10 * 1024 * 1024
+            if file.size > max_size:
+                raise forms.ValidationError(
+                    f'Файл слишком большой. Максимальный размер: {max_size//(1024*1024)}MB'
+                )
+        
+        return file
+
+
+
 
 class ArticleForm(forms.ModelForm):
     class Meta:

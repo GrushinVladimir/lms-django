@@ -1,17 +1,17 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
-from .models import (CustomUser, StudentProfile, TeacherProfile, 
-                    StudentGroup, Course, Subject)
-from .models import Test, Question, Answer
+from .models import (CustomUser, StudentProfile, TeacherProfile,
+                    StudentGroup, Course, Subject, Chapter, Test, Question, Answer)
+
 @admin.register(CustomUser)
 class CustomUserAdmin(UserAdmin):
     list_display = ('username', 'email', 'is_student', 'is_teacher')
     actions = ['make_teacher', 'make_student']
-    
+
     def make_teacher(self, request, queryset):
         queryset.update(is_teacher=True, is_student=False)
     make_teacher.short_description = "Сделать преподавателем"
-    
+
     def make_student(self, request, queryset):
         queryset.update(is_student=True, is_teacher=False)
     make_student.short_description = "Сделать студентом"
@@ -27,12 +27,19 @@ class TeacherProfileAdmin(admin.ModelAdmin):
     list_display = ('last_name', 'first_name', 'middle_name', 'position', 'classroom')
     search_fields = ('last_name', 'first_name', 'middle_name')
     list_filter = ('category', 'position')
+
 class AnswerInline(admin.TabularInline):
     model = Answer
     extra = 1
 
 class QuestionAdmin(admin.ModelAdmin):
     inlines = [AnswerInline]
+
+@admin.register(Chapter)
+class ChapterAdmin(admin.ModelAdmin):
+    list_display = ('name', 'subject')
+    list_filter = ('subject',)
+    search_fields = ('name',)
 
 admin.site.register(Test)
 admin.site.register(Question, QuestionAdmin)

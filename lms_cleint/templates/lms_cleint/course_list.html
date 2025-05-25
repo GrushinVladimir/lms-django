@@ -13,12 +13,13 @@
     <tbody>
         {% for course in courses %}
         <tr>
-            <td>{{ course.name }}</td>
+            <td><a href="{% url 'subject_list' course.id %}">{{ course.name }}</a></td>
             <td title="{{ course.teachers_display }}">{{ course.teachers_display }}</td>
             <td>{{ course.groups_display }}</td>
             <td>
-                <a href="{% url 'course_edit' course.id %}" class="btn btn-sm btn-primary">Редактировать</a>
-                <a href="{% url 'subject_list' course.id %}" class="btn btn-sm btn-info">Предметы</a>
+                <a href="{% url 'subject_list' course.id %}" class="btn btn-sm btn-info">Перейти</a>
+                <a href="{% url 'course_edit' course.id %}" class="btn btn-sm btn-primary">Редактировать</a>             
+                <a href="{% url 'course_delete' course.id %}" class="btn btn-sm btn-danger">Удалить</a>
             </td>
         </tr>
         {% empty %}

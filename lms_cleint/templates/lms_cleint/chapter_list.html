@@ -14,11 +14,26 @@
     <tbody>
         {% for chapter in chapters %}
         <tr>
-            <td>{{ chapter.name }}</td>
-            <td title="{{ chapter.teachers_display }}">{{ chapter.teachers_display }}</td>
-            <td>{{ chapter.groups_display }}</td>
+            <td><a href="{% url 'chapter_detail' chapter.id %}">{{ chapter.name }}</a></td>
             <td>
-                <a href="{% url 'chapter_detail' chapter.id %}" class="btn btn-sm btn-primary">Открыть</a>
+                {% for teacher in chapter.teachers.all %}
+                    {{ teacher.last_name }} {{ teacher.first_name|first }}.
+                    {% if not forloop.last %}, {% endif %}
+                {% empty %}
+                    Нет преподавателей
+                {% endfor %}
+            </td>
+            <td>
+                {% for group in chapter.student_groups.all %}
+                    {{ group.group_number }}
+                    {% if not forloop.last %}, {% endif %}
+                {% empty %}
+                    Нет групп
+                {% endfor %}
+            </td>
+            <td>
+                <a href="{% url 'chapter_detail' chapter.id %}" class="btn btn-sm btn-primary">Перейти</a> 
+                <a href="{% url 'chapter_delete' chapter.id %}" class="btn-sm btn btn-danger">Удалить</a>
             </td>
         </tr>
         {% empty %}
