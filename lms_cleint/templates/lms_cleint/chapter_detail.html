@@ -54,7 +54,10 @@
 {% endblock %}
 {% block content %}
 <h2>Глава: {{ chapter.name }}</h2>
-
+<!-- Прогресс-бар -->
+<div class="progress mb-3">
+    <div id="progress-bar" class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+</div>
 <h3 class="mt-4">Материалы главы</h3>
 <div class="mb-3">
     <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addFileModal">
@@ -74,10 +77,7 @@
     </a>
 </div>
 
-<!-- Прогресс-бар -->
-<div class="progress mb-3">
-    <div id="progress-bar" class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
-</div>
+
 
 <!-- Объединенный список материалов -->
 <ul id="materials-list" class="list-group" data-chapter-id="{{ chapter.id }}">
@@ -86,6 +86,15 @@
         data-id="{% if material.material_type == 'file' %}file_{% elif material.material_type == 'article' %}article_{% elif material.material_type == 'test' %}test_{% elif material.material_type == 'video' %}video_{% elif material.material_type == 'link' %}link_{% endif %}{{ material.id }}"
         data-type="{{ material.material_type }}">
         <div class="material-content">
+                        {% if material.material_type != 'test' %}
+                <button class="btn btn-sm btn-success complete-btn {% if material.completed %}disabled{% endif %}" data-id="{{ material.id }}" data-type="{{ material.material_type }}">
+                    {% if material.completed %}Выполнено{% else %}Выполнено{% endif %}
+                </button>
+            {% else %}
+                {% if material.completed %}
+                    <button class="btn btn-sm btn-success disabled">Выполнено</button>
+                {% endif %}
+            {% endif %}
             <strong>
                 {% if material.material_type == 'file' %}
                     {{ material.display_name }}
@@ -150,15 +159,7 @@
                 {% endif %}
             </div>
             <div class="drag-handle">⋮</div>
-            {% if material.material_type != 'test' %}
-                <button class="btn btn-sm btn-success complete-btn {% if material.completed %}disabled{% endif %}" data-id="{{ material.id }}" data-type="{{ material.material_type }}">
-                    {% if material.completed %}Выполнено{% else %}Выполнено{% endif %}
-                </button>
-            {% else %}
-                {% if material.completed %}
-                    <button class="btn btn-sm btn-success disabled">Выполнено</button>
-                {% endif %}
-            {% endif %}
+
         </div>
     </li>
     {% empty %}

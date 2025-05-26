@@ -473,22 +473,33 @@ def test_result(request, test_id):
         'incorrect_percent': incorrect_percent,
         'questions_data': questions_data  # Передаем данные вопросов в шаблон
     })
+from django.db.models import Avg
+
+from django.db.models import Avg
+from django.shortcuts import render, get_object_or_404
+from django.contrib.auth.decorators import login_required
+from lms_cleint.models import Test, TestResult
+
 @login_required
 def teacher_dashboard(request):
-    if not request.user.is_staff:
-        return HttpResponseForbidden()
+    try:
+        # Получаем профиль учителя для текущего пользователя
+        teacher_profile = request.user.teacherprofile
+    except TeacherProfile.DoesNotExist:
+        return HttpResponseForbidden("Доступ только для преподавателей")
 
-    tests = Test.objects.filter(chapter__subject__teachers=request.user).distinct()
+    # Фильтруем тесты по преподавателю через профиль
+    tests = Test.objects.filter(chapter__subject__teachers=teacher_profile).distinct()
     test_id = request.GET.get('test_id')
 
     if test_id:
-        test = get_object_or_404(Test, pk=test_id)
+        test = get_object_or_404(Test, pk=test_id, chapter__subject__teachers=teacher_profile)
         results = TestResult.objects.filter(test=test).select_related('user')
 
         # Statistics
-        avg_score = results.aggregate(avg=models.Avg('score'))['avg'] or 0
+        avg_score = results.aggregate(avg=Avg('score'))['avg'] or 0
         pass_rate = results.filter(score__gte=test.passing_score).count() / results.count() * 100 if results.count() > 0 else 0
-        attempt_count = results.count()  # Количество попыток
+        attempt_count = results.count()
 
         # Analysis of difficult questions
         question_stats = []
@@ -502,20 +513,20 @@ def teacher_dashboard(request):
                 'correct_rate': correct_count / results.count() * 100 if results.count() > 0 else 0
             })
 
-        return render(request, 'lms_cleint/teacher_test_analytics.html', {
+        return render(request, 'lms_cleint/teacher_dashboard.html', {
             'test': test,
             'results': results,
             'avg_score': round(avg_score, 2),
             'pass_rate': round(pass_rate, 2),
-            'attempt_count': attempt_count,  # Передаем количество попыток в шаблон
+            'attempt_count': attempt_count,
             'question_stats': sorted(question_stats, key=lambda x: x['correct_rate']),
-            'tests': tests
+            'tests': tests,
+            'selected_test': test
         })
 
     return render(request, 'lms_cleint/teacher_dashboard.html', {
         'tests': tests
     })
-
 
 @login_required
 def edit_test(request, test_id):
