@@ -1,0 +1,35 @@
+{% extends 'lms_cleint/base.html' %}
+
+{% block content %}
+<h2>Список группы {{ group.group_number }}</h2>
+<table class="table">
+    <thead>
+        <tr>
+            <th>ФИО студента</th>
+            <th>Номер зачетной книжки</th>
+            <th>Электронная почта</th>
+            <th>Номер телефона</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for student in students %}
+        <tr>
+            <td>
+                {% if student.last_name and student.first_name %}
+                    <a href="{% url 'student_profile' student.id %}">{{ student.last_name }} {{ student.first_name }} {{ student.middle_name }}</a>
+                {% else %}
+                    No Name
+                {% endif %}
+            </td>
+            <td>{{ student.record_book_number|default:"N/A" }}</td>
+            <td>{{ student.email|default:"N/A" }}</td>
+            <td>{{ student.phone_number|default:"N/A" }}</td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="4">В группе нет студентов</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

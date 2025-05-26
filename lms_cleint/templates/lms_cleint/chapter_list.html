@@ -17,22 +17,20 @@
             <td><a href="{% url 'chapter_detail' chapter.id %}">{{ chapter.name }}</a></td>
             <td>
                 {% for teacher in chapter.teachers.all %}
-                    {{ teacher.last_name }} {{ teacher.first_name|first }}.
-                    {% if not forloop.last %}, {% endif %}
+                <a href="{% url 'teacher_profile' teacher.id %}">{{ teacher.last_name }} {{ teacher.first_name|slice:":1" }}.</a>{% if not forloop.last %}, {% endif %}
                 {% empty %}
-                    Нет преподавателей
+                Нет преподавателей
                 {% endfor %}
             </td>
             <td>
                 {% for group in chapter.student_groups.all %}
-                    {{ group.group_number }}
-                    {% if not forloop.last %}, {% endif %}
+                <a href="{% url 'group_list' group.id %}">{{ group.group_number }}</a>{% if not forloop.last %}, {% endif %}
                 {% empty %}
-                    Нет групп
+                Нет групп
                 {% endfor %}
             </td>
             <td>
-                <a href="{% url 'chapter_detail' chapter.id %}" class="btn btn-sm btn-primary">Перейти</a> 
+                <a href="{% url 'chapter_detail' chapter.id %}" class="btn btn-sm btn-primary">Перейти</a>
                 <a href="{% url 'chapter_delete' chapter.id %}" class="btn-sm btn btn-danger">Удалить</a>
             </td>
         </tr>

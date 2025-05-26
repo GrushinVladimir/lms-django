@@ -65,4 +65,8 @@ urlpatterns = [
     path('chapter/video/<int:video_id>/get/', views.get_video_data, name='get_video'),
     path('chapter/link/<int:link_id>/get/', views.get_link_data, name='get_link'),
 
+    path('teacher/<int:teacher_id>/', views.teacher_profile, name='teacher_profile'),
+    path('group/<int:group_id>/', views.group_list, name='group_list'),
+    path('student/<int:student_id>/', views.student_profile, name='student_profile'),
+
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

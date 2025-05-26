@@ -243,6 +243,7 @@
         </div>
     </div>
 </div>
+
 <!-- Модальное окно для редактирования файла -->
 <div class="modal fade" id="editFileModal" tabindex="-1" aria-labelledby="editFileModalLabel" aria-hidden="true">
     <div class="modal-dialog">
@@ -259,9 +260,22 @@
                         <label for="editFileName" class="form-label">Название файла</label>
                         <input type="text" class="form-control" id="editFileName" name="display_name" required>
                     </div>
-                    <div class="mb-3">
-                        <label for="editFile" class="form-label">Файл</label>
+                    
+                    <!-- Скрытая форма для нового файла (появится при нажатии на "Изменить") -->
+                    <div id="newFileForm" class="mb-3" style="display: none;">
+                        <label for="editFile" class="form-label">Новый файл</label>
                         <input type="file" class="form-control" id="editFile" name="file">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Текущий файл</label>
+                        <div id="currentFileContainer" class="p-2 border rounded" style="display: flex; justify-content: space-between; align-items: center;">
+                            <span id="currentFileName" class="ms-2"></span>
+                            <div>
+                                <a href="#" id="currentFileLink" target="_blank" class="btn btn-sm btn-outline-primary me-2">Скачать</a>
+                                <button type="button" id="changeFileBtn" class="btn btn-sm btn-outline-secondary">Изменить</button>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -382,23 +396,50 @@ function updateMaterialsOrder() {
 }
 
     // Обработчики кнопок редактирования
-    document.querySelectorAll('.edit-file-btn').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const fileId = this.dataset.id;
-            fetch(`/chapter/file/${fileId}/get/`, {
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'X-CSRFToken': '{{ csrf_token }}'
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                document.getElementById('editFileId').value = fileId;
-                document.getElementById('editFileName').value = data.display_name;
-                new bootstrap.Modal(document.getElementById('editFileModal')).show();
-            });
+// Обработчики кнопок редактирования
+document.querySelectorAll('.edit-file-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        const fileId = this.dataset.id;
+        fetch(`/chapter/file/${fileId}/get/`, {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRFToken': '{{ csrf_token }}'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('editFileId').value = fileId;
+            document.getElementById('editFileName').value = data.display_name;
+            
+            // Добавляем информацию о текущем файле
+            const currentFileLink = document.getElementById('currentFileLink');
+            const currentFileName = document.getElementById('currentFileName');
+            const newFileForm = document.getElementById('newFileForm');
+            
+            if (data.file_url) {
+                currentFileLink.href = data.file_url;
+                currentFileName.textContent = data.display_name || 'Файл';
+            } else {
+                currentFileLink.style.display = 'none';
+                currentFileName.textContent = 'Файл не загружен';
+                // Если файла нет, сразу показываем форму для загрузки
+                newFileForm.style.display = 'block';
+                document.getElementById('changeFileBtn').style.display = 'none';
+            }
+            
+            // Показываем модальное окно
+            const modal = new bootstrap.Modal(document.getElementById('editFileModal'));
+            modal.show();
         });
     });
+});
+
+// Обработчик кнопки "Изменить"
+document.getElementById('changeFileBtn')?.addEventListener('click', function() {
+    const newFileForm = document.getElementById('newFileForm');
+    newFileForm.style.display = 'block';
+    this.style.display = 'none';
+});
 
     document.querySelectorAll('.edit-video-btn').forEach(btn => {
         btn.addEventListener('click', function() {

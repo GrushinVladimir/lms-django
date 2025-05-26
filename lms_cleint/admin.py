@@ -18,9 +18,13 @@ class CustomUserAdmin(UserAdmin):
 
 @admin.register(StudentProfile)
 class StudentProfileAdmin(admin.ModelAdmin):
-    list_display = ('user', 'group')
+    list_display = ('user', 'group', 'record_book_number', 'first_name', 'last_name', 'middle_name', 'email', 'phone_number', 'avatar_circle')
     list_filter = ('group',)
-    search_fields = ('user__username', 'user__last_name', 'user__first_name')
+    search_fields = ('user__username', 'user__last_name', 'user__first_name', 'record_book_number', 'email', 'phone_number')
+
+    def avatar_circle(self, obj):
+        return obj.generate_avatar_circle()
+    avatar_circle.short_description = 'Avatar'
 
 @admin.register(TeacherProfile)
 class TeacherProfileAdmin(admin.ModelAdmin):

@@ -1,0 +1,12 @@
+{% extends 'lms_cleint/base.html' %}
+
+{% block content %}
+<h2>Профиль преподавателя</h2>
+<div>
+    <p><strong>ФИО:</strong> {{ teacher.last_name }} {{ teacher.first_name }} {{ teacher.middle_name }}</p>
+    <p><strong>Категория:</strong> {{ teacher.get_category_display }}</p>
+    <p><strong>Должность:</strong> {{ teacher.position }}</p>
+    <p><strong>Кабинет:</strong> {{ teacher.classroom }}</p>
+    <p><strong>Телефон:</strong> {{ teacher.phone }}</p>
+</div>
+{% endblock %}

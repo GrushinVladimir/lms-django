@@ -8,7 +8,7 @@ from django.db import transaction
 from django.forms import inlineformset_factory
 from itertools import chain
 from django.conf import settings
-from lms_cleint.models import Course, Subject, Test, Question, Answer, TestResult, Chapter, ChapterFile, Article, CustomUser, Video,Link
+from lms_cleint.models import Course, Subject, Test, Question, Answer, TestResult, Chapter, ChapterFile, Article, CustomUser, Video,Link, TeacherProfile, StudentProfile, StudentGroup
 from lms_cleint.forms import CourseForm, SubjectForm, TestForm, QuestionForm, AnswerForm, AnswerFormSet, ChapterForm, ChapterFileForm, ArticleForm, QuestionFormSet
 import os
 import json
@@ -21,12 +21,35 @@ from django.db.models import Max
 logger = logging.getLogger(__name__)
 
 
+@login_required
+def teacher_profile(request, teacher_id):
+    teacher = get_object_or_404(TeacherProfile, pk=teacher_id)
+    return render(request, 'lms_cleint/teacher_profile.html', {'teacher': teacher})
+
+
+
+@login_required
+def group_list(request, group_id):
+    group = get_object_or_404(StudentGroup, pk=group_id)
+    students = StudentProfile.objects.filter(group=group).select_related('user')
+    logger.debug(f"Group: {group.group_number}, Students: {[student.user.get_full_name() for student in students]}")
+    return render(request, 'lms_cleint/group_list.html', {'group': group, 'students': students})
+
+
+@login_required
+def student_profile(request, student_id):
+    student = get_object_or_404(StudentProfile, pk=student_id)
+    return render(request, 'lms_cleint/student_profile.html', {'student': student})
+
+
 # Получение данных для редактирования
 @login_required
 def get_file_data(request, file_id):
     file = get_object_or_404(ChapterFile, pk=file_id)
     return JsonResponse({
-        'display_name': file.display_name
+        'display_name': file.display_name,
+        'file_url': file.file.url if file.file else '',
+        'file_name': file.file.name.split('/')[-1] if file.file else ''
     })
 
 @login_required

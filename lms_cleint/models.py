@@ -1,7 +1,9 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from tinymce.models import HTMLField
-
+from django.contrib.auth.models import AbstractUser
+from django.db.models.signals import post_save
+from django.dispatch import receiver
 class CustomUser(AbstractUser):
     is_student = models.BooleanField(default=False)
     is_teacher = models.BooleanField(default=False)
@@ -11,6 +13,8 @@ class StudentGroup(models.Model):
 
     def __str__(self):
         return self.group_number
+
+
 
 class TeacherProfile(models.Model):
     CATEGORY_CHOICES = [
@@ -36,9 +40,35 @@ class TeacherProfile(models.Model):
 class StudentProfile(models.Model):
     user = models.OneToOneField(CustomUser, on_delete=models.CASCADE)
     group = models.ForeignKey(StudentGroup, on_delete=models.SET_NULL, null=True, blank=True)
+    record_book_number = models.CharField(max_length=20, blank=True, null=True)
+    first_name = models.CharField(max_length=50, blank=True, null=True)
+    last_name = models.CharField(max_length=50, blank=True, null=True)
+    middle_name = models.CharField(max_length=50, blank=True, null=True)
+    email = models.EmailField(blank=True, null=True)
+    phone_number = models.CharField(max_length=20, blank=True, null=True)
+    avatar = models.ImageField(upload_to='avatars/', blank=True, null=True)
 
     def __str__(self):
         return f"{self.user.get_full_name()} ({self.group})"
+
+    def generate_avatar_circle(self):
+        if self.last_name and self.first_name:
+            initials = f"{self.last_name[0]}{self.first_name[0]}"
+            return initials.upper()
+        return "NN"
+
+@receiver(post_save, sender=CustomUser)
+def create_user_profile(sender, instance, created, **kwargs):
+    if created:
+        if instance.is_student:
+            StudentProfile.objects.create(user=instance)
+
+@receiver(post_save, sender=CustomUser)
+def save_user_profile(sender, instance, **kwargs):
+    if hasattr(instance, 'studentprofile'):
+        instance.studentprofile.save()
+    elif hasattr(instance, 'teacherprofile'):
+        instance.teacherprofile.save()
 
 class Course(models.Model):
     name = models.CharField(max_length=200)

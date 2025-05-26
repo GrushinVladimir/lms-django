@@ -1,0 +1,21 @@
+{% extends 'lms_cleint/base.html' %}
+
+{% block content %}
+<h2>Профиль студента</h2>
+<div>
+    <div>
+        {% if student.avatar %}
+            <img src="{{ student.avatar.url }}" alt="Avatar" style="width: 100px; height: 100px; border-radius: 50%;">
+        {% else %}
+            <div style="width: 100px; height: 100px; border-radius: 50%; background-color: #ccc; display: flex; justify-content: center; align-items: center; font-size: 24px;">
+                {{ student.generate_avatar_circle }}
+            </div>
+        {% endif %}
+    </div>
+    <p><strong>ФИО:</strong> {{ student.last_name }} {{ student.first_name }} {{ student.middle_name }}</p>
+    <p><strong>Номер зачетной книжки:</strong> {{ student.record_book_number|default:"N/A" }}</p>
+    <p><strong>Группа:</strong> {{ student.group.group_number }}</p>
+    <p><strong>Электронная почта:</strong> {{ student.email|default:"N/A" }}</p>
+    <p><strong>Номер телефона:</strong> {{ student.phone_number|default:"N/A" }}</p>
+</div>
+{% endblock %}
