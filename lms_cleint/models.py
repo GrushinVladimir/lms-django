@@ -121,6 +121,7 @@ class ChapterFile(models.Model):
     display_name = models.CharField(max_length=200)
     uploaded_at = models.DateTimeField(auto_now_add=True)
     position = models.PositiveIntegerField(default=0)  # Добавляем поле позиции
+    completed = models.BooleanField(default=False)  # Добавляем поле completed
 
     def __str__(self):
         return self.display_name
@@ -145,7 +146,7 @@ class Article(models.Model):
     created_at = models.DateTimeField(auto_now_add=True, verbose_name='Дата создания')
     updated_at = models.DateTimeField(auto_now=True, verbose_name='Дата обновления')
     position = models.PositiveIntegerField(default=0)  # Добавляем поле позиции
-
+    completed = models.BooleanField(default=False)  # Добавляем поле completed
     class Meta:
         verbose_name = 'Статья'
         verbose_name_plural = 'Статьи'
@@ -161,6 +162,7 @@ class Test(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     passing_score = models.IntegerField(default=70, help_text="Минимальный процент для зачета")
+    completed = models.BooleanField(default=False)  # Добавляем поле completed
 
     class Meta:
         ordering = ['position']
@@ -219,6 +221,7 @@ class Video(models.Model):
     video_file = models.FileField(upload_to='videos/', null=True, blank=True)
     video_url = models.URLField(null=True, blank=True)
     position = models.PositiveIntegerField(default=0)
+    completed = models.BooleanField(default=False)  # Добавляем поле completed
 
     def __str__(self):
         return self.title
@@ -228,6 +231,7 @@ class Link(models.Model):
     title = models.CharField(max_length=200)
     url = models.URLField()
     position = models.PositiveIntegerField(default=0)
+    completed = models.BooleanField(default=False)  # Добавляем поле completed
 
     def __str__(self):
         return self.title

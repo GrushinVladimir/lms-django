@@ -69,4 +69,7 @@ urlpatterns = [
     path('group/<int:group_id>/', views.group_list, name='group_list'),
     path('student/<int:student_id>/', views.student_profile, name='student_profile'),
 
+    path('chapter/<str:material_type>/<int:material_id>/complete/',  views.complete_material, name='complete_material'),
+    path('chapter/progress/',  views.get_progress, name='get_progress'),
+
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

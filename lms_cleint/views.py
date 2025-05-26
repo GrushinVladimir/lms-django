@@ -18,7 +18,77 @@ import logging
 from django.contrib import messages
 from django.views.decorators.http import require_GET
 from django.db.models import Max
+from lms_cleint.models import ChapterFile, Article, Test, Video, Link
+from django.views.decorators.http import require_POST, require_GET
+
 logger = logging.getLogger(__name__)
+
+
+
+
+
+
+
+
+
+@login_required
+@require_POST
+def complete_material(request, material_type, material_id):
+    try:
+        if material_type == 'file':
+            material = get_object_or_404(ChapterFile, pk=material_id)
+        elif material_type == 'article':
+            material = get_object_or_404(Article, pk=material_id)
+        elif material_type == 'test':
+            material = get_object_or_404(Test, pk=material_id)
+        elif material_type == 'video':
+            material = get_object_or_404(Video, pk=material_id)
+        elif material_type == 'link':
+            material = get_object_or_404(Link, pk=material_id)
+        else:
+            return JsonResponse({'status': 'error', 'message': 'Invalid material type'}, status=400)
+
+        # Обновляем статус выполнения материала
+        material.completed = True
+        material.save()
+
+        return JsonResponse({'status': 'success'})
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+
+
+@login_required
+@require_GET
+def get_progress(request):
+    try:
+        chapter_id = request.GET.get('chapter_id')
+        if not chapter_id:
+            return JsonResponse({'status': 'error', 'message': 'Chapter ID is required'}, status=400)
+
+        # Получаем все материалы главы
+        files = ChapterFile.objects.filter(chapter_id=chapter_id)
+        articles = Article.objects.filter(chapter_id=chapter_id)
+        tests = Test.objects.filter(chapter_id=chapter_id)
+        videos = Video.objects.filter(chapter_id=chapter_id)
+        links = Link.objects.filter(chapter_id=chapter_id)
+
+        # Получаем количество выполненных материалов
+        completed_files = files.filter(completed=True).count()
+        completed_articles = articles.filter(completed=True).count()
+        completed_tests = tests.filter(completed=True).count()
+        completed_videos = videos.filter(completed=True).count()
+        completed_links = links.filter(completed=True).count()
+
+        total_materials = files.count() + articles.count() + tests.count() + videos.count() + links.count()
+        completed_materials = completed_files + completed_articles + completed_tests + completed_videos + completed_links
+
+        # Вычисляем прогресс
+        progress = (completed_materials / total_materials) * 100 if total_materials > 0 else 0
+
+        return JsonResponse({'status': 'success', 'progress': progress})
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+
 
 
 @login_required
