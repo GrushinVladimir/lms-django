@@ -1,0 +1,42 @@
+<!-- Модальное окно для редактирования файла -->
+<div class="modal fade" id="editFileModal" tabindex="-1" aria-labelledby="editFileModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editFileModalLabel">Редактировать файл</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="post" enctype="multipart/form-data" id="editFileForm">
+                <div class="modal-body">
+                    {% csrf_token %}
+                    <input type="hidden" id="editFileId" name="file_id">
+                    <div class="mb-3">
+                        <label for="editFileName" class="form-label">Название файла</label>
+                        <input type="text" class="form-control" id="editFileName" name="display_name" required>
+                    </div>
+                    
+                    <!-- Скрытая форма для нового файла (появится при нажатии на "Изменить") -->
+                    <div id="newFileForm" class="mb-3" style="display: none;">
+                        <label for="editFile" class="form-label">Новый файл</label>
+                        <input type="file" class="form-control" id="editFile" name="file">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Текущий файл</label>
+                        <div id="currentFileContainer" class="p-2 border rounded" style="display: flex; justify-content: space-between; align-items: center;">
+                            <span id="currentFileName" class="ms-2"></span>
+                            <div>
+                                <a href="#" id="currentFileLink" target="_blank" class="btn btn-sm btn-outline-primary me-2">Скачать</a>
+                                <button type="button" id="changeFileBtn" class="btn btn-sm btn-outline-secondary">Изменить</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+                    <button type="submit" class="btn btn-primary">Сохранить</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

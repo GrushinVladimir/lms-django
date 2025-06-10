@@ -8,28 +8,56 @@ from django.db import transaction
 from django.forms import inlineformset_factory
 from itertools import chain
 from django.conf import settings
-from lms_cleint.models import Course, Subject, Test, Question, Answer, TestResult, Chapter, ChapterFile, Article, CustomUser, Video,Link, TeacherProfile, StudentProfile, StudentGroup
-from lms_cleint.forms import CourseForm, SubjectForm, TestForm, QuestionForm, AnswerForm, AnswerFormSet, ChapterForm, ChapterFileForm, ArticleForm, QuestionFormSet
+from lms_cleint.models import Course, Subject, Test, Question, Answer, TestResult, Chapter, ChapterFile, Article, Video,Link, TeacherProfile, StudentProfile, StudentGroup, Video,Link
+from lms_cleint.forms import CourseForm, SubjectForm, TestForm, QuestionForm, ChapterForm, ChapterFileForm, ArticleForm, QuestionFormSet
 import os
 import json
 import numpy as np
-from sentence_transformers import SentenceTransformer
 import logging
+from lms_cleint.models import FileAnswer
+
 from django.contrib import messages
-from django.views.decorators.http import require_GET
-from django.db.models import Max
-from lms_cleint.models import ChapterFile, Article, Test, Video, Link
 from django.views.decorators.http import require_POST, require_GET
+from django.db.models import Avg
+from django.db.models import Max
+from sentence_transformers import SentenceTransformer
+
 
 logger = logging.getLogger(__name__)
 
 
+@login_required
+def save_test_result(request, test_id):
+    test = get_object_or_404(Test, pk=test_id)
+
+    # Обновляем статус выполнения теста
+    test.completed = True
+    test.save()
+
+    # Перенаправляем пользователя на страницу с темами
+    return redirect('chapter_detail', chapter_id=test.chapter.id)
 
 
+@login_required
+def dashboard_full(request):
+    # Получаем все тесты, связанные с преподавателем
+    teacher_profile = request.user.teacherprofile
+    tests = Test.objects.filter(chapter__subject__teachers=teacher_profile).distinct()
+
+    return render(request, 'lms_cleint/dashboard_full.html', {
+        'tests': tests
+    })
 
 
+@login_required
+def test_users(request, test_id):
+    test = get_object_or_404(Test, pk=test_id)
+    results = TestResult.objects.filter(test=test).select_related('user')
 
-
+    return render(request, 'lms_cleint/test_users.html', {
+        'test': test,
+        'results': results
+    })
 
 @login_required
 @require_POST
@@ -318,7 +346,28 @@ def get_groups_for_chapter(request, subject_id):
 
 def view_test_result(request, result_id):
     result = get_object_or_404(TestResult, pk=result_id)
-    return render(request, 'lms_cleint/view_test_result.html', {'result': result})
+    test = result.test
+    # Вычисляем количество попыток
+    attempt_count = TestResult.objects.filter(user=request.user, test=test).count()
+
+    # Вычисляем количество правильных и неправильных ответов
+    correct_count = sum(1 for item in result.details['questions'] if item['is_correct'])
+    incorrect_count = len(result.details['questions']) - correct_count
+    correct_percent = (correct_count / len(result.details['questions'])) * 100 if result.details['questions'] else 0
+    incorrect_percent = 100 - correct_percent
+
+    passed = result.get_percentage() >= test.passing_score
+
+    return render(request, 'lms_cleint/view_test_result.html', {
+        'test': test,
+        'result': result,
+        'attempt_count': attempt_count,
+        'correct_count': correct_count,
+        'incorrect_count': incorrect_count,
+        'correct_percent': correct_percent,
+        'incorrect_percent': incorrect_percent,
+        'passed': passed,
+    })
 
 #рефакторинг для ускорения запуска модели(вызываем, когда она необходима) Инициализация модели
 _model = None
@@ -473,60 +522,92 @@ def test_result(request, test_id):
         'incorrect_percent': incorrect_percent,
         'questions_data': questions_data  # Передаем данные вопросов в шаблон
     })
-from django.db.models import Avg
-
-from django.db.models import Avg
-from django.shortcuts import render, get_object_or_404
-from django.contrib.auth.decorators import login_required
-from lms_cleint.models import Test, TestResult
 
 @login_required
 def teacher_dashboard(request):
     try:
-        # Получаем профиль учителя для текущего пользователя
         teacher_profile = request.user.teacherprofile
     except TeacherProfile.DoesNotExist:
         return HttpResponseForbidden("Доступ только для преподавателей")
 
-    # Фильтруем тесты по преподавателю через профиль
+    group_id = request.GET.get('group_id')
     tests = Test.objects.filter(chapter__subject__teachers=teacher_profile).distinct()
-    test_id = request.GET.get('test_id')
 
-    if test_id:
-        test = get_object_or_404(Test, pk=test_id, chapter__subject__teachers=teacher_profile)
-        results = TestResult.objects.filter(test=test).select_related('user')
+    # Получаем все группы, связанные с преподавателем
+    groups = StudentGroup.objects.filter(subject__teachers=teacher_profile).distinct()
 
-        # Statistics
-        avg_score = results.aggregate(avg=Avg('score'))['avg'] or 0
-        pass_rate = results.filter(score__gte=test.passing_score).count() / results.count() * 100 if results.count() > 0 else 0
-        attempt_count = results.count()
+    # Получаем все файлы с ответами для преподавателя
+    files_with_answers = ChapterFile.objects.filter(
+        chapter__subject__teachers=teacher_profile,
+        provide_answer=True
+    ).exclude(file_answers__isnull=True).distinct().prefetch_related('file_answers')
 
-        # Analysis of difficult questions
-        question_stats = []
-        for question in test.questions.all():
-            correct_count = sum(1 for r in results if any(
-                q['question_id'] == question.id and q['is_correct']
-                for q in r.details['questions']
-            ))
-            question_stats.append({
-                'question': question,
-                'correct_rate': correct_count / results.count() * 100 if results.count() > 0 else 0
+    context = {
+        'tests': tests,
+        'groups': groups,
+        'files_with_answers': files_with_answers
+    }
+
+    if group_id:
+        group = get_object_or_404(StudentGroup, pk=group_id)
+        context['selected_group'] = group
+
+        # Фильтруем результаты по выбранной группе
+        if 'test_id' in request.GET:
+            test_id = request.GET.get('test_id')
+            test = get_object_or_404(Test, pk=test_id, chapter__subject__teachers=teacher_profile)
+            results = TestResult.objects.filter(test=test, user__studentprofile__group=group).select_related('user')
+
+            avg_score = results.aggregate(avg=Avg('score'))['avg'] or 0
+            pass_rate = results.filter(score__gte=test.passing_score).count() / results.count() * 100 if results.count() > 0 else 0
+            attempt_count = results.count()
+
+            question_stats = []
+            for question in test.questions.all():
+                correct_count = sum(1 for r in results if any(
+                    q['question_id'] == question.id and q['is_correct']
+                    for q in r.details['questions']
+                ))
+                question_stats.append({
+                    'question': question,
+                    'correct_rate': correct_count / results.count() * 100 if results.count() > 0 else 0
+                })
+
+            context.update({
+                'test': test,
+                'results': results,
+                'avg_score': round(avg_score, 2),
+                'pass_rate': round(pass_rate, 2),
+                'attempt_count': attempt_count,
+                'question_stats': sorted(question_stats, key=lambda x: x['correct_rate']),
+                'selected_test': test
             })
 
-        return render(request, 'lms_cleint/teacher_dashboard.html', {
-            'test': test,
-            'results': results,
-            'avg_score': round(avg_score, 2),
-            'pass_rate': round(pass_rate, 2),
-            'attempt_count': attempt_count,
-            'question_stats': sorted(question_stats, key=lambda x: x['correct_rate']),
-            'tests': tests,
-            'selected_test': test
-        })
+    return render(request, 'lms_cleint/teacher_dashboard.html', context)
 
-    return render(request, 'lms_cleint/teacher_dashboard.html', {
-        'tests': tests
-    })
+
+
+
+
+@login_required
+@require_POST
+def grade_file_answer(request):
+    try:
+        answer_id = request.POST.get('answer_id')
+        grade = request.POST.get('grade')
+        feedback = request.POST.get('feedback', '')
+
+        answer = get_object_or_404(FileAnswer, pk=answer_id, chapter_file__chapter__subject__teachers=request.user.teacherprofile)
+
+        answer.grade = int(grade) if grade else None
+        answer.feedback = feedback
+        answer.save()
+
+        return JsonResponse({'status': 'success'})
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+
+
 
 @login_required
 def edit_test(request, test_id):
@@ -984,54 +1065,33 @@ def chapter_create(request, subject_id):
 @login_required
 def chapter_detail(request, chapter_id):
     chapter = get_object_or_404(Chapter, pk=chapter_id)
-
-    # Получаем все материалы главы
-    files = ChapterFile.objects.filter(chapter=chapter).order_by('position')
-    articles = Article.objects.filter(chapter=chapter).order_by('position')
-    tests = Test.objects.filter(chapter=chapter).order_by('position')
-    videos = Video.objects.filter(chapter=chapter).order_by('position')
-    links = Link.objects.filter(chapter=chapter).order_by('position')
-
-    # Добавляем тип материала к каждому объекту
-    for f in files:
-        f.material_type = 'file'
-    for a in articles:
-        a.material_type = 'article'
-    for t in tests:
-        t.material_type = 'test'
-    for v in videos:
-        v.material_type = 'video'
-    for l in links:
-        l.material_type = 'link'
-
-    # Объединяем и сортируем по позиции
-    materials = sorted(
-        chain(files, articles, tests, videos, links),
-        key=lambda x: x.position
-    )
-
+    
     if request.method == 'POST':
         form = ChapterFileForm(request.POST, request.FILES)
         if form.is_valid():
             file = form.save(commit=False)
             file.chapter = chapter
-
+            file.provide_answer = form.cleaned_data['provide_answer']  # Это должно сохраняться
+            file.save()
+            
             # Получаем максимальную позицию среди всех материалов
             max_position = max(
-                max([f.position for f in files], default=0),
-                max([a.position for a in articles], default=0),
-                max([t.position for t in tests], default=0),
-                max([v.position for v in videos], default=0),
-                max([l.position for l in links], default=0)
+                ChapterFile.objects.filter(chapter=chapter).aggregate(Max('position'))['position__max'] or 0,
+                Article.objects.filter(chapter=chapter).aggregate(Max('position'))['position__max'] or 0,
+                Test.objects.filter(chapter=chapter).aggregate(Max('position'))['position__max'] or 0,
+                Video.objects.filter(chapter=chapter).aggregate(Max('position'))['position__max'] or 0,
+                Link.objects.filter(chapter=chapter).aggregate(Max('position'))['position__max'] or 0
             )
-
+            
             file.position = max_position + 1
             file.save()
 
             if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
                 return JsonResponse({
                     'status': 'success',
-                    'message': 'Файл успешно загружен'
+                    'message': 'Файл успешно загружен',
+                    'file_id': file.id,
+                    'provide_answer': file.provide_answer
                 })
 
             messages.success(request, 'Файл успешно загружен')
@@ -1046,6 +1106,29 @@ def chapter_detail(request, chapter_id):
     else:
         form = ChapterFileForm()
 
+    files = ChapterFile.objects.filter(chapter=chapter).order_by('position')
+    articles = Article.objects.filter(chapter=chapter).order_by('position')
+    tests = Test.objects.filter(chapter=chapter).order_by('position')
+    videos = Video.objects.filter(chapter=chapter).order_by('position')
+    links = Link.objects.filter(chapter=chapter).order_by('position')
+
+    for f in files:
+        f.material_type = 'file'
+        if f.file_answers.exists():
+            answer = f.file_answers.first()
+            f._answer_file_full_name = os.path.basename(answer.file.name)  # Временное поле
+
+    for a in articles:
+        a.material_type = 'article'
+    for t in tests:
+        t.material_type = 'test'
+    for v in videos:
+        v.material_type = 'video'
+    for l in links:
+        l.material_type = 'link'
+
+    materials = sorted(chain(files, articles, tests, videos, links), key=lambda x: x.position)
+
     return render(request, 'lms_cleint/chapter_detail.html', {
         'chapter': chapter,
         'materials': materials,
@@ -1053,7 +1136,35 @@ def chapter_detail(request, chapter_id):
     })
 
 
+@csrf_exempt
+@require_POST
+def upload_answer(request):
+    file_id = request.POST.get('file_id')
+    answer_file = request.FILES.get('answer_file')
 
+    if not file_id or not answer_file:
+        return JsonResponse({'status': 'error', 'message': 'Необходимо указать файл и ID файла'}, status=400)
+
+    chapter_file = get_object_or_404(ChapterFile, pk=file_id)
+    
+    # Delete existing answers if they exist
+    chapter_file.file_answers.all().delete()
+
+    # Save the new file answer
+    file_answer = FileAnswer.objects.create(
+        chapter_file=chapter_file,
+        file=answer_file
+    )
+
+    # Get just the filename without path
+    file_name = os.path.basename(file_answer.file.name)
+    
+    # Return both short and full names
+    return JsonResponse({
+        'status': 'success',
+        'file_name': file_name,  # Полное имя файла для title
+        'short_name': file_name[:15] + '...' if len(file_name) > 15 else file_name  # Сокращенное имя для отображения
+    })
 
 @login_required
 def delete_file(request, file_id):

@@ -4,6 +4,8 @@ from tinymce.models import HTMLField
 from django.contrib.auth.models import AbstractUser
 from django.db.models.signals import post_save
 from django.dispatch import receiver
+import os
+
 class CustomUser(AbstractUser):
     is_student = models.BooleanField(default=False)
     is_teacher = models.BooleanField(default=False)
@@ -115,14 +117,23 @@ class Chapter(models.Model):
     def __str__(self):
         return self.name
 
+
 class ChapterFile(models.Model):
     chapter = models.ForeignKey(Chapter, on_delete=models.CASCADE)
     file = models.FileField(upload_to='chapter_files/')
     display_name = models.CharField(max_length=200)
     uploaded_at = models.DateTimeField(auto_now_add=True)
-    position = models.PositiveIntegerField(default=0)  # Добавляем поле позиции
-    completed = models.BooleanField(default=False)  # Добавляем поле completed
-
+    position = models.PositiveIntegerField(default=0)
+    completed = models.BooleanField(default=False)
+    provide_answer = models.BooleanField(default=False)
+    @property
+    def answer_file_name(self):
+        if self.file_answers.exists():
+            filename = os.path.basename(self.file_answers.first().file.name)
+            if len(filename) > 15:
+                return f"{filename[:7]}...{filename[-7:]}"
+            return filename
+        return None
     def __str__(self):
         return self.display_name
 
@@ -139,6 +150,7 @@ class ChapterFile(models.Model):
         return self.file_extension() in ['ppt', 'pptx']
 
 
+    
 class Article(models.Model):
     chapter = models.ForeignKey(Chapter, on_delete=models.CASCADE, related_name='articles')
     title = models.CharField(max_length=200, verbose_name='Заголовок')
@@ -235,3 +247,14 @@ class Link(models.Model):
 
     def __str__(self):
         return self.title
+
+class FileAnswer(models.Model):
+    chapter_file = models.ForeignKey(ChapterFile, on_delete=models.CASCADE, related_name='file_answers')
+    file = models.FileField(upload_to='file_answers/')
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+    grade = models.PositiveSmallIntegerField(null=True, blank=True)  # Новое поле для оценки
+    feedback = models.TextField(blank=True)  # Новое поле для комментария
+    
+    def __str__(self):
+        return f"Answer to {self.chapter_file.display_name}"
+    

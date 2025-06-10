@@ -72,4 +72,11 @@ urlpatterns = [
     path('chapter/<str:material_type>/<int:material_id>/complete/',  views.complete_material, name='complete_material'),
     path('chapter/progress/',  views.get_progress, name='get_progress'),
 
+    path('dashboard_full/', views.dashboard_full, name='dashboard_full'),
+    path('test/<int:test_id>/users/', views.test_users, name='test_users'),
+    path('save_test_result/<int:test_id>/', views.save_test_result, name='save_test_result'),
+    path('upload_answer/', views.upload_answer, name='upload_answer'),
+    
+    path('grade_file_answer/', views.grade_file_answer, name='grade_file_answer'),
+
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

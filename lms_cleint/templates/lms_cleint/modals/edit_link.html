@@ -1,0 +1,29 @@
+<!-- Модальное окно для редактирования ссылки -->
+<div class="modal fade" id="editLinkModal" tabindex="-1" aria-labelledby="editLinkModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editLinkModalLabel">Редактировать ссылку</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="post" id="editLinkForm">
+                <div class="modal-body">
+                    {% csrf_token %}
+                    <input type="hidden" id="editLinkId" name="link_id">
+                    <div class="mb-3">
+                        <label for="editLinkTitle" class="form-label">Название ссылки</label>
+                        <input type="text" class="form-control" id="editLinkTitle" name="link_title" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editLinkUrl" class="form-label">URL</label>
+                        <input type="url" class="form-control" id="editLinkUrl" name="link_url" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+                    <button type="submit" class="btn btn-primary">Сохранить</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

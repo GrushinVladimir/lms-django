@@ -1,0 +1,33 @@
+<!-- Модальное окно для редактирования видео -->
+<div class="modal fade" id="editVideoModal" tabindex="-1" aria-labelledby="editVideoModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editVideoModalLabel">Редактировать видео</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="post" enctype="multipart/form-data" id="editVideoForm">
+                <div class="modal-body">
+                    {% csrf_token %}
+                    <input type="hidden" id="editVideoId" name="video_id">
+                    <div class="mb-3">
+                        <label for="editVideoTitle" class="form-label">Название видео</label>
+                        <input type="text" class="form-control" id="editVideoTitle" name="video_title" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editVideoFile" class="form-label">Загрузить видео</label>
+                        <input type="file" class="form-control" id="editVideoFile" name="video_file" accept="video/*">
+                    </div>
+                    <div class="mb-3">
+                        <label for="editVideoUrl" class="form-label">Или вставить ссылку на YouTube</label>
+                        <input type="url" class="form-control" id="editVideoUrl" name="video_url" placeholder="https://www.youtube.com/watch?v=...">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
+                    <button type="submit" class="btn btn-primary">Сохранить</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>

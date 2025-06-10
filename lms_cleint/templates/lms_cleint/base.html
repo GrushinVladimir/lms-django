@@ -63,6 +63,10 @@
                             <li class="nav-item">
                                 <a class="nav-link" href="{% url 'course_list' %}">Курсы</a>
                             </li>
+
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'teacher_dashboard' %}?test_id={{ test.id }}">Дашборд</a>
+                            </li>
                             {% if user.is_teacher or user.is_superuser %}
                                 <li class="nav-item">
                                     <a class="nav-link" href="{% url 'course_create' %}">Создать курс</a>

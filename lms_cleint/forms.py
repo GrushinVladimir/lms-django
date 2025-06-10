@@ -58,10 +58,12 @@ class ChapterForm(forms.ModelForm):
             self.fields['teachers'].queryset = subject.teachers.all()
 
 class ChapterFileForm(forms.ModelForm):
+    provide_answer = forms.BooleanField(required=False, label="Предоставить ответ")
+    
     class Meta:
         model = ChapterFile
-        fields = ['display_name', 'file']
-
+        fields = ['display_name', 'file', 'provide_answer']
+        
     def clean_file(self):
         file = self.cleaned_data.get('file')
         if file:
