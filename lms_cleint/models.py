@@ -5,6 +5,10 @@ from django.contrib.auth.models import AbstractUser
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 import os
+from django.core.validators import MinValueValidator, MaxValueValidator
+from django.utils import timezone
+from django.contrib.contenttypes.models import ContentType
+from django.contrib.contenttypes.fields import GenericForeignKey
 
 class CustomUser(AbstractUser):
     is_student = models.BooleanField(default=False)
@@ -126,16 +130,29 @@ class ChapterFile(models.Model):
     position = models.PositiveIntegerField(default=0)
     completed = models.BooleanField(default=False)
     provide_answer = models.BooleanField(default=False)
+    completed_by = models.ManyToManyField(
+        CustomUser,
+        through='FileCompletion',
+        related_name='completed_files'
+    )
+    @property
+    def safe_display_name(self):
+        if self.display_name:
+            return self.display_name
+        if self.file and hasattr(self.file, 'name'):
+            return os.path.basename(self.file.name)
+        return "Без названия"
     @property
     def answer_file_name(self):
-        if self.file_answers.exists():
-            filename = os.path.basename(self.file_answers.first().file.name)
+        # Используем related_name из FileAnswer для доступа к связанным ответам
+        if hasattr(self, 'answers') and self.answers.exists():
+            filename = os.path.basename(self.answers.first().file.name)
             if len(filename) > 15:
                 return f"{filename[:7]}...{filename[-7:]}"
             return filename
         return None
-    def __str__(self):
-        return self.display_name
+    def get_display_name(self):
+        return self.display_name or os.path.basename(self.file.name)
 
     def file_extension(self):
         return self.file.name.split('.')[-1].lower()
@@ -150,7 +167,27 @@ class ChapterFile(models.Model):
         return self.file_extension() in ['ppt', 'pptx']
 
 
-    
+class FileCompletion(models.Model):
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
+    file = models.ForeignKey(ChapterFile, on_delete=models.CASCADE)
+    completed_at = models.DateTimeField(auto_now_add=True)
+
+class MaterialCompletion(models.Model):
+    """Общая модель для отметки о выполнении любых материалов"""
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
+    content_type = models.ForeignKey(ContentType, on_delete=models.CASCADE)
+    object_id = models.PositiveIntegerField()
+    content_object = GenericForeignKey('content_type', 'object_id')
+    completed_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        indexes = [
+            models.Index(fields=['content_type', 'object_id']),
+            models.Index(fields=['user', 'content_type', 'object_id']),
+        ]
+        unique_together = ('user', 'content_type', 'object_id')
+
+
 class Article(models.Model):
     chapter = models.ForeignKey(Chapter, on_delete=models.CASCADE, related_name='articles')
     title = models.CharField(max_length=200, verbose_name='Заголовок')
@@ -249,12 +286,24 @@ class Link(models.Model):
         return self.title
 
 class FileAnswer(models.Model):
-    chapter_file = models.ForeignKey(ChapterFile, on_delete=models.CASCADE, related_name='file_answers')
-    file = models.FileField(upload_to='file_answers/')
+    chapter_file = models.ForeignKey(
+        ChapterFile,
+        on_delete=models.CASCADE,
+        related_name='answers'  # Используем related_name для доступа из ChapterFile
+    )
+    student = models.ForeignKey(
+        CustomUser,
+        on_delete=models.CASCADE,
+        default=1  # Укажите ID существующего пользователя
+    )
+    file = models.FileField(upload_to='student_answers/')
     uploaded_at = models.DateTimeField(auto_now_add=True)
-    grade = models.PositiveSmallIntegerField(null=True, blank=True)  # Новое поле для оценки
-    feedback = models.TextField(blank=True)  # Новое поле для комментария
-    
-    def __str__(self):
-        return f"Answer to {self.chapter_file.display_name}"
-    
+    grade = models.PositiveSmallIntegerField(
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(0), MaxValueValidator(10)]
+    )
+    feedback = models.TextField(blank=True)
+
+    class Meta:
+        unique_together = ('chapter_file', 'student')

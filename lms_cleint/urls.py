@@ -13,7 +13,6 @@ urlpatterns = [
     path('courses/<int:course_id>/subjects/', views.subject_list, name='subject_list'),
     path('courses/<int:course_id>/subjects/create/', views.subject_create, name='subject_create'),
     path('subjects/<int:pk>/edit/', views.subject_edit, name='subject_edit'),
-
     path('subjects/<int:subject_id>/chapters/', views.chapter_list, name='chapter_list'),
     path('subjects/<int:subject_id>/chapters/create/', views.chapter_create, name='chapter_create'),
     path('chapters/<int:chapter_id>/', views.chapter_detail, name='chapter_detail'),
@@ -21,6 +20,7 @@ urlpatterns = [
 
     path('chapter/<int:chapter_id>/article/create/', views.create_article, name='create_article'),
     path('article/<int:article_id>/', views.article_detail, name='article_detail'),
+
     path('upload_image/', views.upload_image, name='upload_image'),
     path('article/<int:article_id>/edit/', views.edit_article, name='edit_article'),
     path('article/<int:article_id>/delete/', views.delete_article, name='delete_article'),
@@ -50,7 +50,7 @@ urlpatterns = [
     path('chapter/<int:chapter_id>/add_link/', views.add_link, name='add_link'),
     path('delete_video/<int:video_id>/', views.delete_video, name='delete_video'),
     path('delete_link/<int:link_id>/', views.delete_link, name='delete_link'),
-    path('chapter/<int:chapter_id>/upload_file/', views.chapter_detail, name='upload_file'),
+  
     # Получение данных для редактирования
     path('file/<int:file_id>/get/', views.get_file_data, name='get_file_data'),
     path('video/<int:video_id>/get/', views.get_video_data, name='get_video_data'),
@@ -69,14 +69,23 @@ urlpatterns = [
     path('group/<int:group_id>/', views.group_list, name='group_list'),
     path('student/<int:student_id>/', views.student_profile, name='student_profile'),
 
-    path('chapter/<str:material_type>/<int:material_id>/complete/',  views.complete_material, name='complete_material'),
-    path('chapter/progress/',  views.get_progress, name='get_progress'),
+    path('complete_material/<str:material_type>/<int:material_id>/', views.complete_material, name='complete_material'),
+
+
+    path('get_progress/', views.get_progress, name='get_progress'),
 
     path('dashboard_full/', views.dashboard_full, name='dashboard_full'),
     path('test/<int:test_id>/users/', views.test_users, name='test_users'),
     path('save_test_result/<int:test_id>/', views.save_test_result, name='save_test_result'),
     path('upload_answer/', views.upload_answer, name='upload_answer'),
+
     
     path('grade_file_answer/', views.grade_file_answer, name='grade_file_answer'),
+    path('chapter/<int:chapter_id>/upload_file/', views.upload_file, name='upload_file'),
 
+
+
+    path('teacher/chapter/<int:chapter_id>/', views.chapter_detail, name='chapter_detail'),
+    path('chapter_detail_student/<int:chapter_id>/', views.chapter_detail_student, name='chapter_detail_student'),
+    path('chapter/<int:chapter_id>/', views.redirect_to_chapter_view, name='chapter_redirect'),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

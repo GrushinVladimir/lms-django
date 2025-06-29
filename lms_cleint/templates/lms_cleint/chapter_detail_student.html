@@ -1,0 +1,471 @@
+{% extends 'lms_cleint/base.html' %}
+{% load static %}
+{% block extra_css %}
+<style>
+    .progress-bar {
+        transition: width 0.5s ease-in-out;
+    }
+    .list-group-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .material-content {
+        display: flex;
+        justify-content: space-between;
+        width: 100%;
+    }
+    .material-actions {
+        display: flex;
+        align-items: center;
+    }
+    .toast-container {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 1100;
+    }
+    .material-badge {
+        margin-left: 10px;
+    }
+    .answer-section {
+        margin-top: 10px;
+        padding: 10px;
+        background-color: #f8f9fa;
+        border-radius: 5px;
+    }
+    .video-modal {
+        display: none;
+        position: fixed;
+        z-index: 1;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        overflow: auto;
+        background-color: rgba(0,0,0,0.5);
+    }
+    .video-modal-content {
+        background-color: #fefefe;
+        margin: 9% auto;
+        padding: 20px;
+        border: 1px solid #888;
+        width: 80%;
+    }
+    .close {
+        color: #aaa;
+        float: right;
+        font-size: 28px;
+        font-weight: bold;
+    }
+    .close:hover,
+    .close:focus {
+        color: black;
+        text-decoration: none;
+        cursor: pointer;
+    }
+</style>
+{% endblock %}
+{% block content %}
+<div class="container py-4">
+    <div class="row mb-4">
+        <div class="col">
+            <h2>{{ chapter.name }}</h2>
+            <p class="text-muted">{{ chapter.subject.name }}</p>
+            <!-- Прогресс бар -->
+            <div class="progress mb-3">
+                <div id="progress-bar" class="progress-bar" role="progressbar"
+                     style="width: {{ progress|default:0 }}%;"
+                     aria-valuenow="{{ progress|default:0 }}"
+                     aria-valuemin="0" aria-valuemax="100">
+                    {{ progress|default:0 }}%
+                </div>
+            </div>
+        </div>
+    </div>
+    <h3 class="mt-4">Материалы главы</h3>
+    <ul id="materials-list" class="list-group" data-chapter-id="{{ chapter.id }}">
+        {% for material in materials %}
+        <li class="list-group-item mb-3" data-id="{{ material.material_type }}_{{ material.id }}" data-type="{{ material.material_type }}">
+            <div class="material-content">
+                <!-- Кнопка выполнения и название материала -->
+                <div class="d-flex align-items-center">
+                    <button class="btn btn-sm
+                        {% if material.user_completed %}
+                            btn-success disabled
+                        {% else %}
+                            btn-outline-secondary {% if material.material_type == 'test' %}disabled{% endif %}
+                        {% endif %}
+                        complete-btn"
+                        data-id="{{ material.id }}"
+                        data-type="{{ material.material_type }}"
+                        {% if material.material_type == 'test' or material.user_completed %}disabled{% endif %}>
+                        {% if material.user_completed %}Выполнено{% else %}Выполнить{% endif %}
+                    </button>
+                    <div class="ms-3">
+                        <!-- Иконка в зависимости от типа материала -->
+                        {% if material.material_type == 'file' %}
+                            <i class="fas fa-file me-2"></i>
+                        {% elif material.material_type == 'article' %}
+                            <i class="fas fa-newspaper me-2"></i>
+                        {% elif material.material_type == 'test' %}
+                            <i class="fas fa-question-circle me-2"></i>
+                        {% elif material.material_type == 'video' %}
+                            <i class="fas fa-video me-2"></i>
+                        {% elif material.material_type == 'link' %}
+                            <i class="fas fa-link me-2"></i>
+                        {% endif %}
+                        <strong>
+                            {% if material.material_type == 'file' %}
+                                {{ material.display_name|default:material.file.name }}
+                            {% elif material.material_type == 'article' %}
+                                {{ material.title }}
+                            {% elif material.material_type == 'test' %}
+                                {{ material.title }}
+                            {% elif material.material_type == 'video' %}
+                                {{ material.title }}
+                            {% elif material.material_type == 'link' %}
+                                <a href="{{ material.url }}" target="_blank">{{ material.title }}</a>
+                            {% endif %}
+                        </strong>
+                        <span class="badge
+                            {% if material.material_type == 'file' %}bg-primary
+                            {% elif material.material_type == 'article' %}bg-success
+                            {% elif material.material_type == 'test' %}bg-info
+                            {% elif material.material_type == 'video' %}bg-warning
+                            {% elif material.material_type == 'link' %}bg-dark{% endif %}">
+                            {% if material.material_type == 'file' %}
+                                {% if material.is_pdf %}PDF
+                                {% elif material.is_word %}Word
+                                {% elif material.is_ppt %}PowerPoint
+                                {% else %}Файл{% endif %}
+                            {% elif material.material_type == 'article' %}
+                                Статья
+                            {% elif material.material_type == 'test' %}
+                                Тест
+                            {% elif material.material_type == 'video' %}
+                                Видео
+                            {% elif material.material_type == 'link' %}
+                                Ссылка
+                            {% endif %}
+                        </span>
+                    </div>
+                </div>
+                <!-- Содержимое материала -->
+                <div class="material-actions">
+                    {% if material.material_type == 'file' %}
+                        <a href="{{ material.file.url }}" target="_blank" class="btn btn-sm btn-outline-primary me-2">
+                            <i class="fas fa-download"></i> Скачать
+                        </a>
+                        {% if material.provide_answer %}
+                        <div class="answer-section mt-3">
+                            <h6>Отправить ответ:</h6>
+                            <form id="answerForm_{{ material.id }}" class="d-flex align-items-center">
+                                <input type="file" name="answer_file" class="form-control form-control-sm me-2" required>
+                                <button type="button" onclick="uploadAnswer({{ material.id }})" class="btn btn-sm btn-primary">
+                                    Отправить
+                                </button>
+                            </form>
+                            {% if material.user_answer %}
+                            <div class="mt-2">
+                                <small>Ваш ответ:
+                                    <a href="{{ material.user_answer.file.url }}" target="_blank">
+                                        {{ material.user_answer.file.name|slice:"20" }}{% if material.user_answer.file.name|length > 20 %}...{% endif %}
+                                    </a>
+                                </small>
+                            </div>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+                    {% elif material.material_type == 'article' %}
+                        <a href="{% url 'article_detail' material.id %}" class="btn btn-sm btn-primary">
+                            <i class="fas fa-external-link-alt"></i> Перейти
+                        </a>
+                    {% elif material.material_type == 'test' %}
+                        <a href="{% url 'view_test' material.id %}" class="btn btn-sm btn-primary">
+                            <i class="fas fa-play"></i> Пройти тест
+                        </a>
+                    {% elif material.material_type == 'video' %}
+                        <button class="btn btn-sm btn-primary" onclick="openVideoModal('{% if material.video_file %}{{ material.video_file.url }}{% else %}{{ material.video_url|default:'' }}{% endif %}')">
+                            <i class="fas fa-play"></i> Воспроизвести
+                        </button>
+                    {% elif material.material_type == 'link' %}
+                        <a href="{{ material.url }}" target="_blank" class="btn btn-sm btn-primary">
+                            <i class="fas fa-external-link-alt"></i> Перейти
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+        </li>
+        {% empty %}
+        <li class="list-group-item">Материалы пока не добавлены</li>
+        {% endfor %}
+    </ul>
+    <div class="mt-4">
+        <a href="{% url 'course_list' %}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Вернуться к курсам
+        </a>
+    </div>
+</div>
+<!-- Модальное окно подтверждения выполнения -->
+<div class="modal fade" id="confirmCompletionModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Подтверждение</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                Вы уверены, что хотите отметить этот материал как выполненный?
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                <button type="button" class="btn btn-primary" id="confirmCompletionBtn">Подтвердить</button>
+            </div>
+        </div>
+    </div>
+</div>
+<!-- Модальное окно для просмотра видео -->
+<div id="videoModal" class="video-modal">
+    <div class="video-modal-content">
+        <span class="close" onclick="closeVideoModal()">&times;</span>
+        <div id="videoContainer"></div>
+    </div>
+</div>
+{% endblock %}
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.14.0/Sortable.min.js"></script>
+<script>
+// Глобальные переменные
+let currentMaterialToComplete = null;
+
+// Функции для работы с видео
+function openVideoModal(videoUrl) {
+    const modal = document.getElementById('videoModal');
+    const videoContainer = document.getElementById('videoContainer');
+    if (videoUrl.includes('youtube.com') || videoUrl.includes('youtu.be')) {
+        let videoId = videoUrl.split('v=')[1];
+        if (!videoId) videoId = videoUrl.split('youtu.be/')[1];
+        if (videoId) videoId = videoId.split('&')[0];
+        videoContainer.innerHTML = `
+            <iframe width="100%" height="700"
+                src="https://www.youtube.com/embed/${videoId}"
+                frameborder="0"
+                allowfullscreen>
+            </iframe>`;
+    } else {
+        videoContainer.innerHTML = `
+            <video width="100%" height="700" controls>
+                <source src="${videoUrl}" type="video/mp4">
+                Ваш браузер не поддерживает видео.
+            </video>`;
+    }
+    modal.style.display = "block";
+}
+
+function closeVideoModal() {
+    document.getElementById('videoModal').style.display = "none";
+    document.getElementById('videoContainer').innerHTML = '';
+}
+
+// Функция для получения CSRF-токена
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+// Функция для показа уведомлений
+function showToast(message, type = 'success') {
+    const toastContainer = document.querySelector('.toast-container') || (() => {
+        const container = document.createElement('div');
+        container.className = 'toast-container position-fixed top-0 end-0 p-3';
+        document.body.appendChild(container);
+        return container;
+    })();
+    const toastId = 'toast-' + Date.now();
+    toastContainer.insertAdjacentHTML('beforeend', `
+        <div id="${toastId}" class="toast align-items-center text-white bg-${type} border-0" role="alert">
+            <div class="d-flex">
+                <div class="toast-body">${message}</div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+            </div>
+        </div>
+    `);
+    const toast = new bootstrap.Toast(document.getElementById(toastId));
+    toast.show();
+    // Автоматическое удаление через 5 секунд
+    setTimeout(() => toast.dispose(), 5000);
+}
+
+// Функция для обновления прогресса главы
+function updateChapterProgress() {
+    const chapterId = document.getElementById('materials-list')?.dataset.chapterId;
+    if (!chapterId) return;
+    fetch(`/get_progress/?chapter_id=${chapterId}`, {
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.status === 'success') {
+            animateProgressBar(data.progress);
+        }
+    })
+    .catch(error => console.error('Ошибка обновления прогресса:', error));
+}
+
+// Инициализация сортировки
+function initSortable(chapterId) {
+    const materialsList = document.getElementById('materials-list');
+    if (materialsList) {
+        new Sortable(materialsList, {
+            animation:35,
+            ghostClass: 'sortable-ghost',
+            handle: '.drag-handle',
+            onEnd: function() {
+                const order = Array.from(materialsList.children).map(item => item.dataset.id);
+                saveMaterialsOrder(chapterId, order);
+            }
+        });
+    }
+}
+
+// Сохранение порядка материалов
+function saveMaterialsOrder(chapterId, order) {
+    fetch(`/chapter/${chapterId}/update_materials_order/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken'),
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: JSON.stringify({order: order})
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            showToast('Порядок материалов сохранён');
+        } else {
+            showToast('Ошибка при сохранении порядка', 'danger');
+        }
+    })
+    .catch(error => {
+        showToast('Ошибка при сохранении порядка', 'danger');
+        console.error('Ошибка:', error);
+    });
+}
+
+// Функция для подтверждения выполнения материала
+function confirmMaterialCompletion() {
+    if (!currentMaterialToComplete) return;
+    const { id, type, element } = currentMaterialToComplete;
+    const url = `/complete_material/${type}/${id}/`;
+    // Блокируем кнопку на время выполнения запроса
+    element.disabled = true;
+    element.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span> Обработка...';
+    fetch(url, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken'),
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: JSON.stringify({})
+    })
+    .then(response => {
+        if (!response.ok) {
+            return response.text().then(text => {
+                throw new Error(`Ошибка сервера: ${response.status} - ${text}`);
+            });
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.status === 'success') {
+            // Обновляем кнопку
+            element.classList.remove('btn-outline-secondary');
+            element.classList.add('btn-success');
+            element.textContent = 'Выполнено';
+            // Обновляем прогресс
+            updateChapterProgress();
+            // Закрываем модальное окно
+            bootstrap.Modal.getInstance(document.getElementById('confirmCompletionModal')).hide();
+            showToast('Материал отмечен как выполненный');
+        } else {
+            throw new Error(data.message || 'Неизвестная ошибка');
+        }
+    })
+    .catch(error => {
+        // Восстанавливаем кнопку при ошибке
+        element.disabled = false;
+        element.textContent = element.textContent.includes('Выполнено') ? 'Выполнено' : 'Выполнить';
+        showToast(`Ошибка: ${error.message}`, 'danger');
+        console.error('Ошибка:', error);
+    });
+}
+
+// Инициализация при загрузке страницы
+document.addEventListener('DOMContentLoaded', function() {
+    const chapterId = document.getElementById('materials-list')?.dataset.chapterId;
+    // Инициализация прогресс-бара
+    updateChapterProgress();
+    // Инициализация сортировки
+    if (chapterId) {
+        initSortable(chapterId);
+    }
+    // Обработчики для кнопок выполнения (исключаем тесты)
+    document.querySelectorAll('.complete-btn:not(.disabled):not([data-type="test"])').forEach(btn => {
+        btn.addEventListener('click', function() {
+            currentMaterialToComplete = {
+                id: this.dataset.id,
+                type: this.dataset.type,
+                element: this
+            };
+            const modal = new bootstrap.Modal(document.getElementById('confirmCompletionModal'));
+            modal.show();
+        });
+    });
+    // Подтверждение выполнения материала
+    document.getElementById('confirmCompletionBtn').addEventListener('click', confirmMaterialCompletion);
+});
+
+// Анимация прогресс-бара
+function animateProgressBar(targetProgress) {
+    const progressBar = document.getElementById('progress-bar');
+    const currentWidth = parseFloat(progressBar.style.width) || 0;
+    const duration = 500; // milliseconds
+    const startTime = performance.now();
+    // Убедимся, что targetProgress - число
+    targetProgress = parseFloat(targetProgress) || 0;
+    function updateProgress(currentTime) {
+        const elapsed = currentTime - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        const currentProgress = currentWidth + (targetProgress - currentWidth) * progress;
+        // Обновляем прогресс-бар
+        progressBar.style.width = `${currentProgress}%`;
+        progressBar.setAttribute('aria-valuenow', Math.round(currentProgress));
+        progressBar.textContent = `${Math.round(currentProgress)}%`;
+        if (progress < 1) {
+            requestAnimationFrame(updateProgress);
+        }
+    }
+    requestAnimationFrame(updateProgress);
+}
+</script>
+{% endblock %}

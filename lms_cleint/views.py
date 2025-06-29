@@ -1,3 +1,4 @@
+from .decorators import teacher_required, student_required
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import login, authenticate, logout
@@ -15,27 +16,77 @@ import json
 import numpy as np
 import logging
 from lms_cleint.models import FileAnswer
-
-from django.contrib import messages
 from django.views.decorators.http import require_POST, require_GET
-from django.db.models import Avg
-from django.db.models import Max
+
+from django.db.models import Max, Avg
+from django.contrib import messages
+from django.utils import timezone
+
+from lms_cleint.models import MaterialCompletion
 from sentence_transformers import SentenceTransformer
+
+
+
+
+from django.contrib.contenttypes.models import ContentType
+from django.contrib.contenttypes.fields import GenericForeignKey
+
+
+
+
+
+
+
 
 
 logger = logging.getLogger(__name__)
 
 
 @login_required
+@student_required
+@require_POST
 def save_test_result(request, test_id):
     test = get_object_or_404(Test, pk=test_id)
 
     # Обновляем статус выполнения теста
-    test.completed = True
-    test.save()
+    content_type = ContentType.objects.get_for_model(Test)
+    MaterialCompletion.objects.get_or_create(
+        user=request.user,
+        content_type=content_type,
+        object_id=test.id
+    )
 
-    # Перенаправляем пользователя на страницу с темами
-    return redirect('chapter_detail', chapter_id=test.chapter.id)
+    # Обновляем прогресс
+    files = ChapterFile.objects.filter(chapter=test.chapter)
+    articles = Article.objects.filter(chapter=test.chapter)
+    tests = Test.objects.filter(chapter=test.chapter)
+    videos = Video.objects.filter(chapter=test.chapter)
+    links = Link.objects.filter(chapter=test.chapter)
+
+    file_ct = ContentType.objects.get_for_model(ChapterFile)
+    article_ct = ContentType.objects.get_for_model(Article)
+    test_ct = ContentType.objects.get_for_model(Test)
+    video_ct = ContentType.objects.get_for_model(Video)
+    link_ct = ContentType.objects.get_for_model(Link)
+
+    completed = MaterialCompletion.objects.filter(
+        user=request.user,
+        content_type__in=[file_ct, article_ct, test_ct, video_ct, link_ct],
+        object_id__in=[m.id for m in chain(files, articles, tests, videos, links)]
+    ).values_list('content_type', 'object_id')
+
+    completed_set = {(ct, obj_id) for ct, obj_id in completed}
+
+    completed_count = sum(
+        1 for m in chain(files, articles, tests, videos, links)
+        if (ContentType.objects.get_for_model(m.__class__).id, m.id) in completed_set
+    )
+
+    total_materials = files.count() + articles.count() + tests.count() + videos.count() + links.count()
+    progress = (completed_count / total_materials) * 100 if total_materials > 0 else 0
+
+    messages.success(request, 'Результат теста успешно сохранен')
+    return redirect('chapter_detail_student', chapter_id=test.chapter.id)
 
 
 @login_required
@@ -59,63 +110,145 @@ def test_users(request, test_id):
         'results': results
     })
 
-@login_required
 @require_POST
+@login_required
+@student_required
 def complete_material(request, material_type, material_id):
     try:
-        if material_type == 'file':
-            material = get_object_or_404(ChapterFile, pk=material_id)
-        elif material_type == 'article':
-            material = get_object_or_404(Article, pk=material_id)
-        elif material_type == 'test':
-            material = get_object_or_404(Test, pk=material_id)
-        elif material_type == 'video':
-            material = get_object_or_404(Video, pk=material_id)
-        elif material_type == 'link':
-            material = get_object_or_404(Link, pk=material_id)
-        else:
-            return JsonResponse({'status': 'error', 'message': 'Invalid material type'}, status=400)
+        model_map = {
+            'file': ChapterFile,
+            'article': Article,
+            'test': Test,
+            'video': Video,
+            'link': Link
+        }
+        
+        if material_type not in model_map:
+            return JsonResponse({'status': 'error', 'message': 'Неверный тип материала'}, status=400)
+        
+        model = model_map[material_type]
+        material = get_object_or_404(model, pk=material_id)
+        
+        # Проверка доступа студента
+        student_profile = get_object_or_404(StudentProfile, user=request.user)
+        if not material.chapter.student_groups.filter(id=student_profile.group.id).exists():
+            return JsonResponse({'status': 'error', 'message': 'Нет доступа к материалу'}, status=403)
+        
+        # Создаем отметку о выполнении
+        content_type = ContentType.objects.get_for_model(model)
+        MaterialCompletion.objects.get_or_create(
+            user=request.user,
+            content_type=content_type,
+            object_id=material.id
+        )
+        
+        # Пересчитываем прогресс
+        files = ChapterFile.objects.filter(chapter=material.chapter)
+        articles = Article.objects.filter(chapter=material.chapter)
+        tests = Test.objects.filter(chapter=material.chapter)
+        videos = Video.objects.filter(chapter=material.chapter)
+        links = Link.objects.filter(chapter=material.chapter)
 
-        # Обновляем статус выполнения материала
-        material.completed = True
-        material.save()
+        # Получаем ContentType для каждого типа
+        file_ct = ContentType.objects.get_for_model(ChapterFile)
+        article_ct = ContentType.objects.get_for_model(Article)
+        test_ct = ContentType.objects.get_for_model(Test)
+        video_ct = ContentType.objects.get_for_model(Video)
+        link_ct = ContentType.objects.get_for_model(Link)
 
-        return JsonResponse({'status': 'success'})
+        # Получаем выполненные материалы для пользователя
+        completed = MaterialCompletion.objects.filter(
+            user=request.user,
+            content_type__in=[file_ct, article_ct, test_ct, video_ct, link_ct],
+            object_id__in=[m.id for m in chain(files, articles, tests, videos, links)]
+        ).values_list('content_type', 'object_id')
+
+        completed_set = {(ct, obj_id) for ct, obj_id in completed}
+        
+        completed_count = sum(
+            1 for m in chain(files, articles, tests, videos, links)
+            if (ContentType.objects.get_for_model(m.__class__).id, m.id) in completed_set
+        )
+        
+        total_materials = files.count() + articles.count() + tests.count() + videos.count() + links.count()
+        progress = (completed_count / total_materials) * 100 if total_materials > 0 else 0
+        
+        return JsonResponse({
+            'status': 'success',
+            'progress': progress,
+            'material_id': material.id,
+            'material_type': material_type
+        })
+        
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
 
 
-@login_required
 @require_GET
+@login_required
 def get_progress(request):
     try:
         chapter_id = request.GET.get('chapter_id')
+
         if not chapter_id:
             return JsonResponse({'status': 'error', 'message': 'Chapter ID is required'}, status=400)
 
-        # Получаем все материалы главы
+        # Get all materials for the chapter
         files = ChapterFile.objects.filter(chapter_id=chapter_id)
         articles = Article.objects.filter(chapter_id=chapter_id)
         tests = Test.objects.filter(chapter_id=chapter_id)
         videos = Video.objects.filter(chapter_id=chapter_id)
         links = Link.objects.filter(chapter_id=chapter_id)
 
-        # Получаем количество выполненных материалов
-        completed_files = files.filter(completed=True).count()
-        completed_articles = articles.filter(completed=True).count()
-        completed_tests = tests.filter(completed=True).count()
-        completed_videos = videos.filter(completed=True).count()
-        completed_links = links.filter(completed=True).count()
+        # Get ContentTypes for each material type
+        file_ct = ContentType.objects.get_for_model(ChapterFile)
+        article_ct = ContentType.objects.get_for_model(Article)
+        test_ct = ContentType.objects.get_for_model(Test)
+        video_ct = ContentType.objects.get_for_model(Video)
+        link_ct = ContentType.objects.get_for_model(Link)
 
-        total_materials = files.count() + articles.count() + tests.count() + videos.count() + links.count()
-        completed_materials = completed_files + completed_articles + completed_tests + completed_videos + completed_links
+        # Get all completed materials for the user
+        completed = MaterialCompletion.objects.filter(
+            user=request.user,
+            content_type__in=[file_ct, article_ct, test_ct, video_ct, link_ct],
+            object_id__in=[m.id for m in chain(files, articles, tests, videos, links)]
+        ).values_list('content_type', 'object_id')
 
-        # Вычисляем прогресс
-        progress = (completed_materials / total_materials) * 100 if total_materials > 0 else 0
+        # Create a set of completed materials for faster lookup
+        completed_set = {(ct, obj_id) for ct, obj_id in completed}
 
-        return JsonResponse({'status': 'success', 'progress': progress})
+        # Count completed materials
+        completed_count = 0
+        total_materials = 0
+
+        # Helper function to count materials
+        def count_materials(materials, content_type):
+            nonlocal completed_count, total_materials
+            for material in materials:
+                total_materials += 1
+                if (content_type.id, material.id) in completed_set:
+                    completed_count += 1
+
+        # Count each type of material
+        count_materials(files, file_ct)
+        count_materials(articles, article_ct)
+        count_materials(tests, test_ct)
+        count_materials(videos, video_ct)
+        count_materials(links, link_ct)
+
+        # Calculate progress
+        progress = (completed_count / total_materials) * 100 if total_materials > 0 else 0
+
+        return JsonResponse({
+            'status': 'success',
+            'progress': progress,
+            'completed': completed_count,
+            'total': total_materials
+        })
     except Exception as e:
-        return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+        logger.error(f"Error calculating progress: {str(e)}")
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+
 
 
 
@@ -400,22 +533,22 @@ def check_text_answer(user_answer, correct_answer, ai_check_enabled=True):
     """Проверка текстового ответа"""
     user_answer = preprocess_text(user_answer)
     correct_answer = preprocess_text(correct_answer)
-    
+
     if not user_answer:
         return False
-    
+
     # Если ответы полностью совпадают
     if user_answer == correct_answer:
         return True
-    
+
     # Если AI проверка отключена
     if not ai_check_enabled:
         return False
-    
+
     # Проверка с помощью SentenceTransformer
     similarity = check_text_similarity(user_answer, correct_answer)
     logger.debug(f"Сравнение: '{user_answer}' vs '{correct_answer}' - схожесть: {similarity:.2f}")
-    
+
     # Подберите оптимальный порог для вашей предметной области
     return similarity > 0.60
 
@@ -431,7 +564,7 @@ def submit_test(request, test_id):
             question_data = {
                 'question_id': question.id,
                 'question_text': question.text,
-                'is_correct': False,  # По умолчанию
+                'is_correct': False,
                 'score': 0
             }
 
@@ -448,8 +581,8 @@ def submit_test(request, test_id):
                     question_data.update({
                         'user_answer': user_answer,
                         'correct_answer': correct_answer_obj.text,
-                        'is_correct': bool(is_correct),  # Убедитесь, что это bool
-                        'score': int(1 if is_correct else 0)  # Убедитесь, что это int
+                        'is_correct': bool(is_correct),
+                        'score': int(1 if is_correct else 0)
                     })
                 else:
                     question_data.update({
@@ -459,7 +592,6 @@ def submit_test(request, test_id):
                         'score': 0
                     })
             else:
-                # Обработка вопросов с выбором
                 selected_answers = []
                 if question.question_type == 'single':
                     answer_id = request.POST.get(f'question_{question.id}')
@@ -476,20 +608,20 @@ def submit_test(request, test_id):
                 question_data.update({
                     'user_answer': selected_answers,
                     'correct_answer': correct_answers,
-                    'is_correct': bool(is_correct),  # Убедитесь, что это bool
-                    'score': int(1 if is_correct else 0)  # Убедитесь, что это int
+                    'is_correct': bool(is_correct),
+                    'score': int(1 if is_correct else 0)
                 })
 
             results.append(question_data)
             total_score += question_data['score']
 
-        # Сохраняем как JSON-совместимую структуру
-        TestResult.objects.create(
+        # Сохраняем результат теста
+        test_result = TestResult.objects.create(
             user=request.user,
             test=test,
             score=total_score,
             max_score=test.questions.count(),
-            details={'questions': results}  # Django сам сериализует в JSON
+            details={'questions': results}
         )
 
         return redirect('test_result', test_id=test.id)
@@ -503,10 +635,10 @@ def submit_test(request, test_id):
 def test_result(request, test_id):
     test = get_object_or_404(Test, pk=test_id)
     result = TestResult.objects.filter(test=test, user=request.user).latest('submitted_at')
-    
-    # Получаем детали результатов (уже десериализованные Django)
+
+    # Получаем детали результатов
     questions_data = result.details.get('questions', [])
-    
+
     correct_count = sum(1 for item in questions_data if item['is_correct'])
     incorrect_count = len(questions_data) - correct_count
     correct_percent = (correct_count / len(questions_data)) * 100 if questions_data else 0
@@ -520,7 +652,7 @@ def test_result(request, test_id):
         'incorrect_count': incorrect_count,
         'correct_percent': correct_percent,
         'incorrect_percent': incorrect_percent,
-        'questions_data': questions_data  # Передаем данные вопросов в шаблон
+        'questions_data': questions_data
     })
 
 @login_required
@@ -590,22 +722,42 @@ def teacher_dashboard(request):
 
 
 @login_required
+@teacher_required
 @require_POST
 def grade_file_answer(request):
     try:
         answer_id = request.POST.get('answer_id')
-        grade = request.POST.get('grade')
+        grade = int(request.POST.get('grade'))
         feedback = request.POST.get('feedback', '')
+        
+        if not (0 <= grade <= 10):
+            raise ValueError("Оценка должна быть от 0 до 10")
 
-        answer = get_object_or_404(FileAnswer, pk=answer_id, chapter_file__chapter__subject__teachers=request.user.teacherprofile)
+        answer = get_object_or_404(
+            FileAnswer, 
+            pk=answer_id,
+            chapter_file__chapter__subject__teachers=request.user.teacherprofile
+        )
 
-        answer.grade = int(grade) if grade else None
+        answer.grade = grade
         answer.feedback = feedback
         answer.save()
 
-        return JsonResponse({'status': 'success'})
+        return JsonResponse({
+            'status': 'success',
+            'grade': grade,
+            'feedback': feedback
+        })
+    except ValueError as e:
+        return JsonResponse(
+            {'status': 'error', 'message': str(e)},
+            status=400
+        )
     except Exception as e:
-        return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+        return JsonResponse(
+            {'status': 'error', 'message': 'Произошла ошибка при сохранении оценки'},
+            status=500
+        )
 
 
 
@@ -962,6 +1114,60 @@ def edit_article(request, article_id):
     })
 
 @login_required
+@teacher_required
+def upload_file(request, chapter_id):
+    chapter = get_object_or_404(Chapter, pk=chapter_id)
+    
+    if request.method == 'POST':
+        form = ChapterFileForm(request.POST, request.FILES)
+        if form.is_valid():
+            try:
+                file = form.save(commit=False)
+                file.chapter = chapter
+                file.provide_answer = form.cleaned_data.get('provide_answer', False)
+                
+                # Получаем все материалы главы для определения позиции
+                files = ChapterFile.objects.filter(chapter=chapter)
+                articles = Article.objects.filter(chapter=chapter)
+                tests = Test.objects.filter(chapter=chapter)
+                videos = Video.objects.filter(chapter=chapter)
+                links = Link.objects.filter(chapter=chapter)
+
+                # Находим максимальную позицию среди всех материалов
+                max_position = max(
+                    max([f.position for f in files], default=0),
+                    max([a.position for a in articles], default=0),
+                    max([t.position for t in tests], default=0),
+                    max([v.position for v in videos], default=0),
+                    max([l.position for l in links], default=0)
+                )
+
+                file.position = max_position + 1
+                file.save()
+
+                if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                    return JsonResponse({'status': 'success', 'file_id': file.id})
+                
+                messages.success(request, 'Файл успешно загружен')
+                return redirect('chapter_detail', chapter_id=chapter.id)
+            
+            except Exception as e:
+                error_msg = f'Ошибка при загрузке файла: {str(e)}'
+                if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                    return JsonResponse({'status': 'error', 'message': error_msg}, status=400)
+                messages.error(request, error_msg)
+                return redirect('chapter_detail', chapter_id=chapter.id)
+        
+        else:
+            error_msg = 'Неверные данные формы'
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return JsonResponse({'status': 'error', 'message': error_msg, 'errors': form.errors}, status=400)
+            messages.error(request, error_msg)
+            return redirect('chapter_detail', chapter_id=chapter.id)
+    
+    return JsonResponse({'status': 'error', 'message': 'Invalid request method'}, status=400)
+
+@login_required
 def delete_article(request, article_id):
     article = get_object_or_404(Article, pk=article_id)
     chapter_id = article.chapter.id
@@ -1062,109 +1268,267 @@ def chapter_create(request, subject_id):
         form = ChapterForm(subject_id=subject_id)
     return render(request, 'lms_cleint/chapter_form.html', {'form': form, 'subject': subject})
 
+
+@login_required
+def redirect_to_chapter_view(request, chapter_id):
+    """Перенаправляет на соответствующую view в зависимости от роли"""
+    if hasattr(request.user, 'teacherprofile'):
+        return redirect('chapter_detail', chapter_id=chapter_id)
+    elif hasattr(request.user, 'studentprofile'):
+        return redirect('chapter_detail_student', chapter_id=chapter_id)
+    else:
+        return HttpResponseForbidden("Доступ запрещен")
+    
+
+
+@login_required
+@student_required
+def chapter_detail_student(request, chapter_id):
+    chapter = get_object_or_404(Chapter, pk=chapter_id)
+    student_profile = get_object_or_404(StudentProfile, user=request.user)
+
+    if not chapter.student_groups.filter(id=student_profile.group.id).exists():
+        return HttpResponseForbidden("У вас нет доступа к этой главе")
+
+    # Получаем все материалы главы
+    files = ChapterFile.objects.filter(chapter=chapter).order_by('position')
+    articles = Article.objects.filter(chapter=chapter).order_by('position')
+    tests = Test.objects.filter(chapter=chapter).order_by('position')
+    videos = Video.objects.filter(chapter=chapter).order_by('position')
+    links = Link.objects.filter(chapter=chapter).order_by('position')  # Вот здесь получаем все ссылки
+
+    # Получаем ContentType для каждого типа материала
+    file_ct = ContentType.objects.get_for_model(ChapterFile)
+    article_ct = ContentType.objects.get_for_model(Article)
+    test_ct = ContentType.objects.get_for_model(Test)
+    video_ct = ContentType.objects.get_for_model(Video)
+    link_ct = ContentType.objects.get_for_model(Link)  # ContentType для ссылок
+
+    # Получаем все отметки о выполнении для текущего пользователя
+    completed_materials = MaterialCompletion.objects.filter(
+        user=request.user,
+        content_type__in=[file_ct, article_ct, test_ct, video_ct, link_ct],  # Включаем link_ct
+        object_id__in=[m.id for m in chain(files, articles, tests, videos, links)]
+    ).values_list('content_type', 'object_id')
+
+    completed_set = {(ct, obj_id) for ct, obj_id in completed_materials}
+
+    # Добавляем информацию о материалах
+    all_materials = []
+    for material in chain(files, articles, tests, videos, links):
+        # Правильно определяем тип материала
+        if isinstance(material, ChapterFile):
+            material.material_type = 'file'
+        elif isinstance(material, Article):
+            material.material_type = 'article'
+        elif isinstance(material, Test):
+            material.material_type = 'test'
+        elif isinstance(material, Video):
+            material.material_type = 'video'
+        elif isinstance(material, Link):
+            material.material_type = 'link'
+        
+        # Получаем ContentType для текущего материала
+        content_type = ContentType.objects.get_for_model(material.__class__)
+        material.user_completed = (content_type.id, material.id) in completed_set
+        
+        all_materials.append(material)
+
+    # Сортируем материалы по позиции
+    all_materials.sort(key=lambda x: x.position)
+
+    # Рассчитываем прогресс
+    completed_count = sum(1 for m in all_materials if m.user_completed)
+    progress = (completed_count / len(all_materials)) * 100 if all_materials else 0
+
+    return render(request, 'lms_cleint/chapter_detail_student.html', {
+        'chapter': chapter,
+        'materials': all_materials,
+        'progress': progress,
+        'student': student_profile
+    })
+
+
+@require_POST
+@login_required
+@student_required
+def complete_material(request, material_type, material_id):
+    try:
+        model_map = {
+            'file': ChapterFile,
+            'article': Article,
+            'test': Test,
+            'video': Video,
+            'link': Link
+        }
+        
+        if material_type not in model_map:
+            return JsonResponse({'status': 'error', 'message': 'Неверный тип материала'}, status=400)
+        
+        model = model_map[material_type]
+        material = get_object_or_404(model, pk=material_id)
+        
+        # Проверка доступа студента
+        student_profile = get_object_or_404(StudentProfile, user=request.user)
+        if not material.chapter.student_groups.filter(id=student_profile.group.id).exists():
+            return JsonResponse({'status': 'error', 'message': 'Нет доступа к материалу'}, status=403)
+        
+        # Создаем отметку о выполнении
+        content_type = ContentType.objects.get_for_model(model)
+        MaterialCompletion.objects.get_or_create(
+            user=request.user,
+            content_type=content_type,
+            object_id=material.id
+        )
+        
+        return JsonResponse({'status': 'success'})
+        
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+
+
 @login_required
 def chapter_detail(request, chapter_id):
     chapter = get_object_or_404(Chapter, pk=chapter_id)
-    
-    if request.method == 'POST':
-        form = ChapterFileForm(request.POST, request.FILES)
-        if form.is_valid():
-            file = form.save(commit=False)
-            file.chapter = chapter
-            file.provide_answer = form.cleaned_data['provide_answer']  # Это должно сохраняться
-            file.save()
-            
-            # Получаем максимальную позицию среди всех материалов
-            max_position = max(
-                ChapterFile.objects.filter(chapter=chapter).aggregate(Max('position'))['position__max'] or 0,
-                Article.objects.filter(chapter=chapter).aggregate(Max('position'))['position__max'] or 0,
-                Test.objects.filter(chapter=chapter).aggregate(Max('position'))['position__max'] or 0,
-                Video.objects.filter(chapter=chapter).aggregate(Max('position'))['position__max'] or 0,
-                Link.objects.filter(chapter=chapter).aggregate(Max('position'))['position__max'] or 0
-            )
-            
-            file.position = max_position + 1
-            file.save()
+    logger.debug(f"Loading chapter {chapter_id} for user {request.user}")
 
-            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-                return JsonResponse({
-                    'status': 'success',
-                    'message': 'Файл успешно загружен',
-                    'file_id': file.id,
-                    'provide_answer': file.provide_answer
-                })
+    if hasattr(request.user, 'teacherprofile'):
+        teacher_profile = request.user.teacherprofile
+        if not chapter.subject.teachers.filter(id=teacher_profile.id).exists():
+            return HttpResponseForbidden("У вас нет доступа к этой главе")
 
-            messages.success(request, 'Файл успешно загружен')
-            return redirect('chapter_detail', chapter_id=chapter.id)
+        # Получаем все материалы
+        files = ChapterFile.objects.filter(chapter=chapter).order_by('position')
+        articles = Article.objects.filter(chapter=chapter).order_by('position')
+        tests = Test.objects.filter(chapter=chapter).order_by('position')
+        videos = Video.objects.filter(chapter=chapter).order_by('position')
+        links = Link.objects.filter(chapter=chapter).order_by('position')
+
+        # Объединяем материалы и добавляем информацию о типе материала
+        materials = []
+        for material in chain(files, articles, tests, videos, links):
+            if isinstance(material, ChapterFile):
+                material.material_type = 'file'
+            else:
+                material.material_type = material.__class__.__name__.lower()
+            materials.append(material)
+
+        # Сортируем материалы по позиции
+        materials.sort(key=lambda x: x.position)
+
+        logger.debug(f"Found {len(materials)} materials for chapter {chapter_id}")
+
+        if request.method == 'POST':
+            form = ChapterFileForm(request.POST, request.FILES)
+            if form.is_valid():
+                file = form.save(commit=False)
+                file.chapter = chapter
+                file.provide_answer = form.cleaned_data['provide_answer']
+
+                # Определяем новую позицию
+                last_position = materials[-1].position if materials else 0
+                file.position = last_position + 1
+
+                file.save()
+
+                if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                    return JsonResponse({'status': 'success', 'file_id': file.id})
+
+                messages.success(request, 'Файл успешно загружен')
+                return redirect('chapter_detail', chapter_id=chapter.id)
         else:
-            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-                return JsonResponse({
-                    'status': 'error',
-                    'message': 'Ошибка валидации формы',
-                    'errors': form.errors
-                }, status=400)
-    else:
-        form = ChapterFileForm()
+            form = ChapterFileForm()
 
+        return render(request, 'lms_cleint/chapter_detail.html', {
+            'chapter': chapter,
+            'materials': materials,
+            'form': form
+        })
+
+    elif hasattr(request.user, 'studentprofile'):
+        return chapter_detail_student(request, chapter_id)
+
+    return HttpResponseForbidden("Доступ запрещен")
+
+
+def get_max_position(chapter):
+    """Получает максимальную позицию среди всех материалов главы"""
+    max_positions = [
+        ChapterFile.objects.filter(chapter=chapter).aggregate(Max('position'))['position__max'] or 0,
+        Article.objects.filter(chapter=chapter).aggregate(Max('position'))['position__max'] or 0,
+        Test.objects.filter(chapter=chapter).aggregate(Max('position'))['position__max'] or 0,
+        Video.objects.filter(chapter=chapter).aggregate(Max('position'))['position__max'] or 0,
+        Link.objects.filter(chapter=chapter).aggregate(Max('position'))['position__max'] or 0
+    ]
+    return max(max_positions)
+
+def get_materials_for_chapter(chapter, user):
+    """Получает материалы главы с дополнительной информацией для пользователя"""
     files = ChapterFile.objects.filter(chapter=chapter).order_by('position')
     articles = Article.objects.filter(chapter=chapter).order_by('position')
     tests = Test.objects.filter(chapter=chapter).order_by('position')
     videos = Video.objects.filter(chapter=chapter).order_by('position')
     links = Link.objects.filter(chapter=chapter).order_by('position')
 
-    for f in files:
-        f.material_type = 'file'
-        if f.file_answers.exists():
-            answer = f.file_answers.first()
-            f._answer_file_full_name = os.path.basename(answer.file.name)  # Временное поле
-
-    for a in articles:
-        a.material_type = 'article'
-    for t in tests:
-        t.material_type = 'test'
-    for v in videos:
-        v.material_type = 'video'
-    for l in links:
-        l.material_type = 'link'
-
-    materials = sorted(chain(files, articles, tests, videos, links), key=lambda x: x.position)
-
-    return render(request, 'lms_cleint/chapter_detail.html', {
-        'chapter': chapter,
-        'materials': materials,
-        'form': form
-    })
+    # Добавляем информацию о типе материала и ответах пользователя
+    for material in chain(files, articles, tests, videos, links):
+        material.material_type = material.__class__.__name__.lower()
+        
+        if material.material_type == 'file' and user.is_student:
+            material.user_answer = FileAnswer.objects.filter(
+                chapter_file=material,
+                student=user
+            ).first()
+    
+    return sorted(chain(files, articles, tests, videos, links), key=lambda x: x.position)
 
 
-@csrf_exempt
+@login_required
+@student_required
 @require_POST
 def upload_answer(request):
     file_id = request.POST.get('file_id')
     answer_file = request.FILES.get('answer_file')
 
     if not file_id or not answer_file:
-        return JsonResponse({'status': 'error', 'message': 'Необходимо указать файл и ID файла'}, status=400)
+        return JsonResponse(
+            {'status': 'error', 'message': 'Необходимо указать файл и ID файла'}, 
+            status=400
+        )
 
-    chapter_file = get_object_or_404(ChapterFile, pk=file_id)
+    chapter_file = get_object_or_404(ChapterFile, pk=file_id, provide_answer=True)
     
-    # Delete existing answers if they exist
-    chapter_file.file_answers.all().delete()
+    # Проверка что студент имеет доступ к этому файлу
+    student_profile = get_object_or_404(StudentProfile, user=request.user)
+    if not chapter_file.chapter.student_groups.filter(id=student_profile.group.id).exists():
+        return JsonResponse(
+            {'status': 'error', 'message': 'У вас нет доступа к этому файлу'},
+            status=403
+        )
 
-    # Save the new file answer
-    file_answer = FileAnswer.objects.create(
-        chapter_file=chapter_file,
-        file=answer_file
-    )
+    # Удаляем старый ответ если он есть
+    FileAnswer.objects.filter(chapter_file=chapter_file, student=request.user).delete()
 
-    # Get just the filename without path
-    file_name = os.path.basename(file_answer.file.name)
-    
-    # Return both short and full names
-    return JsonResponse({
-        'status': 'success',
-        'file_name': file_name,  # Полное имя файла для title
-        'short_name': file_name[:15] + '...' if len(file_name) > 15 else file_name  # Сокращенное имя для отображения
-    })
+    # Создаем новый ответ
+    try:
+        file_answer = FileAnswer.objects.create(
+            chapter_file=chapter_file,
+            student=request.user,
+            file=answer_file
+        )
+        
+        file_name = os.path.basename(file_answer.file.name)
+        return JsonResponse({
+            'status': 'success',
+            'file_name': file_name,
+            'short_name': (file_name[:15] + '...') if len(file_name) > 15 else file_name,
+            'answer_id': file_answer.id
+        })
+    except Exception as e:
+        return JsonResponse(
+            {'status': 'error', 'message': str(e)},
+            status=500
+        )
 
 @login_required
 def delete_file(request, file_id):
@@ -1277,5 +1641,3 @@ def subject_edit(request, pk):
     else:
         form = SubjectForm(instance=subject)
     return render(request, 'lms_cleint/subject_form.html', {'form': form, 'course': subject.course})
-
-

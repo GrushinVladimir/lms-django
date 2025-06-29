@@ -61,9 +61,6 @@
 
 {% block content %}
 <h2>Глава: {{ chapter.name }}</h2>
-<div class="progress mb-3">
-    <div id="progress-bar" class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
-</div>
 
 <h3 class="mt-4">Материалы главы</h3>
 <div class="mb-3">
@@ -86,22 +83,15 @@
 
 <ul id="materials-list" class="list-group" data-chapter-id="{{ chapter.id }}">
 {% for material in materials %}
+
 <li class="list-group-item"
     data-id="{% if material.material_type == 'file' %}file_{% elif material.material_type == 'article' %}article_{% elif material.material_type == 'test' %}test_{% elif material.material_type == 'video' %}video_{% elif material.material_type == 'link' %}link_{% endif %}{{ material.id }}"
     data-type="{{ material.material_type }}">
     <div class="material-content">
-        {% if material.material_type != 'test' %}
-            <button class="btn btn-sm btn-success complete-btn {% if material.completed %}disabled{% endif %}" data-id="{{ material.id }}" data-type="{{ material.material_type }}">
-                {% if material.completed %}Выполнено{% else %}Выполнено{% endif %}
-            </button>
-        {% else %}
-            {% if material.completed %}
-                <button class="btn btn-sm btn-success disabled">Выполнено</button>
-            {% endif %}
-        {% endif %}
         <strong>
             {% if material.material_type == 'file' %}
-                {{ material.display_name }}
+            
+                {{ material.display_name|default:material.file.name }}
             {% elif material.material_type == 'article' %}
                 {{ material.title }}
             {% elif material.material_type == 'test' %}
@@ -135,60 +125,46 @@
         </span>
     </div>
     <div class="material-actions">
-
-        <div class="btn-group">
-            {% if material.material_type == 'file' %}
+        <!-- Обработка для каждого типа материала -->
+        {% if material.material_type == 'file' %}
+        
+            <div class="btn-group">
                 {% if material.provide_answer %}
-         {% if material.file_answers.first.grade is not None %}
-            <span class="badge border border-success text-success d-flex align-items-center justify-content-center">{{ material.file_answers.first.grade }} из 10</span>
-        {% else %}
-            <span class="badge border border-warning text-warning d-flex align-items-center justify-content-center">Не оценено</span>
-        {% endif %}
-
-                    <button class="btn btn-sm btn-primary add-answer-btn" data-id="{{ material.id }}" 
-                    
-                        {% if material.answer_file_name %}title="{{ material.file_answers.first.file.name }}"
-                        
-                        
-                        {% endif %}>
-
-                        {% if material.answer_file_name %}
-                            {{ material.answer_file_name }}
-
-                        {% else %}
-                            Добавить ответ
-                        {% endif %}
-                    </button>
-
+                    <!-- Обработка для файлов с ответами -->
+                {% endif %}
                 {% if material.is_pdf %}
                     <a href="{{ material.file.url }}" class="btn btn-sm btn-info" target="_blank">Просмотреть</a>
                 {% else %}
                     <a href="{{ material.file.url }}" class="btn btn-sm btn-info" download>Скачать</a>
                 {% endif %}
-
-                {% endif %}
                 <button class="btn btn-sm btn-warning edit-file-btn" data-id="{{ material.id }}">Редактировать</button>
                 <a href="{% url 'delete_file' material.id %}" class="btn btn-sm btn-danger">Удалить</a>
-                                          
-
-            {% elif material.material_type == 'article' %}
+            </div>
+        {% elif material.material_type == 'article' %}
+            <div class="btn-group">
                 <a href="{% url 'article_detail' material.id %}" class="btn btn-sm btn-info">Просмотреть</a>
                 <a href="{% url 'edit_article' material.id %}" class="btn btn-sm btn-warning">Редактировать</a>
                 <a href="{% url 'delete_article' material.id %}" class="btn btn-sm btn-danger">Удалить</a>
-            {% elif material.material_type == 'test' %}
+            </div>
+        {% elif material.material_type == 'test' %}
+            <div class="btn-group">
                 <a href="{% url 'view_test' material.id %}" class="btn btn-sm btn-info">Выполнить тест</a>
                 <a href="{% url 'edit_test' material.id %}" class="btn btn-sm btn-warning">Редактировать</a>
                 <a href="{% url 'delete_test' material.id %}" class="btn btn-sm btn-danger">Удалить</a>
-            {% elif material.material_type == 'video' %}
+            </div>
+        {% elif material.material_type == 'video' %}
+            <div class="btn-group">
                 <button class="btn btn-sm btn-info" onclick="openVideoModal('{{ material.video_url }}')">Воспроизвести</button>
                 <button class="btn btn-sm btn-warning edit-video-btn" data-id="{{ material.id }}">Редактировать</button>
                 <a href="{% url 'delete_video' material.id %}" class="btn btn-sm btn-danger">Удалить</a>
-            {% elif material.material_type == 'link' %}
+            </div>
+        {% elif material.material_type == 'link' %}
+            <div class="btn-group">
                 <a href="{{ material.url }}" class="btn btn-sm btn-info" target="_blank">Открыть</a>
                 <button class="btn btn-sm btn-warning edit-link-btn" data-id="{{ material.id }}">Редактировать</button>
                 <a href="{% url 'delete_link' material.id %}" class="btn btn-sm btn-danger">Удалить</a>
-            {% endif %}
-        </div>
+            </div>
+        {% endif %}
         <div class="drag-handle">⋮</div>
     </div>
 </li>
@@ -211,7 +187,6 @@
 <div class="mt-3">
     <a href="{% url 'chapter_list' chapter.subject.id %}" class="btn btn-secondary">Вернуться к главам</a>
 </div>
-
 {% endblock %}
 
 {% block extra_js %}
@@ -224,7 +199,6 @@ let currentMaterialToComplete = null;
 function showDynamicToast(message, type = 'success') {
     const toastContainer = document.querySelector('.toast-container') || createToastContainer();
     const toastId = 'toast-' + Date.now();
-
     const toastHTML = `
         <div id="${toastId}" class="toast align-items-center border-0" role="alert" aria-live="assertive" aria-atomic="true" style="background:#d1e7dd; color:#0a3622;">
             <div class="d-flex">
@@ -234,12 +208,10 @@ function showDynamicToast(message, type = 'success') {
                 <button type="button" class="btn-close btn-close-black me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
             </div>
         </div>`;
-
     toastContainer.insertAdjacentHTML('beforeend', toastHTML);
     const toastEl = document.getElementById(toastId);
     const toast = new bootstrap.Toast(toastEl);
     toast.show();
-
     toastEl.addEventListener('hidden.bs.toast', function() {
         toastEl.remove();
     });
@@ -255,11 +227,6 @@ function createToastContainer() {
 // Инициализация при загрузке страницы
 document.addEventListener('DOMContentLoaded', function() {
     const chapterId = document.getElementById('materials-list')?.dataset.chapterId;
-    
-    // Инициализация прогресс-бара
-    if (chapterId) {
-        updateProgressBar(chapterId);
-    }
 
     // Инициализация сортировки
     initSortable(chapterId);
@@ -270,27 +237,6 @@ document.addEventListener('DOMContentLoaded', function() {
     // Проверяем, есть ли файлы с ответами и обновляем кнопки
     updateAnswerButtons();
 });
-
-// Обновление прогресс-бара
-function updateProgressBar(chapterId) {
-    fetch(`/chapter/progress/?chapter_id=${chapterId}`, {
-        method: 'GET',
-        headers: {
-            'X-Requested-With': 'XMLHttpRequest'
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.status === 'success') {
-            const progressBar = document.getElementById('progress-bar');
-            progressBar.style.width = `${data.progress}%`;
-            progressBar.setAttribute('aria-valuenow', data.progress);
-        }
-    })
-    .catch(error => {
-        console.error('Ошибка при получении прогресса:', error);
-    });
-}
 
 // Инициализация сортировки
 function initSortable(chapterId) {
@@ -335,31 +281,15 @@ function saveMaterialsOrder(chapterId, order) {
 
 // Настройка обработчиков событий
 function setupEventHandlers() {
-    // Обработчики кнопок "Выполнено"
-    document.querySelectorAll('.complete-btn:not(.disabled)').forEach(btn => {
+    // Обработчики кнопок "Добавить ответ"
+    document.querySelectorAll('.add-answer-btn').forEach(btn => {
         btn.addEventListener('click', function() {
-            currentMaterialToComplete = {
-                id: this.dataset.id,
-                type: this.dataset.type
-            };
-            const modal = new bootstrap.Modal(document.getElementById('confirmCompletionModal'));
+            document.getElementById('fileId').value = this.dataset.id;
+            // Явно показываем модальное окно
+            const modal = new bootstrap.Modal(document.getElementById('addAnswerModal'));
             modal.show();
         });
     });
-
-    // Подтверждение выполнения материала
-    document.getElementById('confirmCompletionBtn').addEventListener('click', completeMaterial);
-
-    // Обработчики кнопок "Добавить ответ"
-
-document.querySelectorAll('.add-answer-btn').forEach(btn => {
-    btn.addEventListener('click', function() {
-        document.getElementById('fileId').value = this.dataset.id;
-        // Явно показываем модальное окно
-        const modal = new bootstrap.Modal(document.getElementById('addAnswerModal'));
-        modal.show();
-    });
-});
 
     // Обработчик формы загрузки ответа
     document.getElementById('answerUploadForm').addEventListener('submit', handleAnswerUpload);
@@ -398,38 +328,6 @@ function updateAnswerButtons() {
     });
 }
 
-// Завершение материала
-function completeMaterial() {
-    if (!currentMaterialToComplete) return;
-
-    const { id, type } = currentMaterialToComplete;
-    fetch(`/chapter/${type}/${id}/complete/`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': '{{ csrf_token }}',
-            'X-Requested-With': 'XMLHttpRequest'
-        }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.status === 'success') {
-            updateProgressBar(document.getElementById('materials-list').dataset.chapterId);
-            document.querySelectorAll(`.complete-btn[data-id="${id}"]`).forEach(btn => {
-                btn.disabled = true;
-                btn.textContent = 'Выполнено';
-            });
-            bootstrap.Modal.getInstance(document.getElementById('confirmCompletionModal')).hide();
-            showDynamicToast('Материал отмечен как выполненный');
-        } else {
-            showDynamicToast(data.message || 'Ошибка при обновлении статуса', 'danger');
-        }
-    })
-    .catch(error => {
-        showDynamicToast('Произошла ошибка: ' + error.message, 'danger');
-    });
-}
-
 // Загрузка ответа
 function handleAnswerUpload(e) {
     e.preventDefault();
@@ -449,7 +347,6 @@ function handleAnswerUpload(e) {
         if (data.status === 'success') {
             showDynamicToast('Ответ успешно загружен');
             bootstrap.Modal.getInstance(document.getElementById('addAnswerModal')).hide();
-
             // Обновляем все кнопки для этого файла
             document.querySelectorAll(`.add-answer-btn[data-id="${fileId}"]`).forEach(button => {
                 button.textContent = data.short_name || 'Ответ';
@@ -481,17 +378,26 @@ function handleFileUpload(e) {
         },
         body: formData
     })
-    .then(response => response.json())
+    .then(response => {
+        if (!response.ok) {
+            return response.json().then(err => { throw err; });
+        }
+        return response.json();
+    })
     .then(data => {
         if (data.status === 'success') {
             showDynamicToast('Файл успешно загружен');
+            // Закрываем модальное окно
+            bootstrap.Modal.getInstance(document.getElementById('addFileModal')).hide();
+            // Обновляем страницу
             location.reload();
         } else {
             showDynamicToast(data.message || 'Ошибка при загрузке файла', 'danger');
         }
     })
     .catch(error => {
-        showDynamicToast('Ошибка при загрузке файла', 'danger');
+        console.error('Error:', error);
+        showDynamicToast(error.message || 'Ошибка при загрузке файла', 'danger');
     });
 }
 
