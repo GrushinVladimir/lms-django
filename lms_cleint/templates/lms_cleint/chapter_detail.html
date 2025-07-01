@@ -60,7 +60,8 @@
 {% endblock %}
 
 {% block content %}
-<h2>Глава: {{ chapter.name }}</h2>
+<p>{{ chapter.name }} / {{ chapter.subject.name }}</p>
+
 
 <h3 class="mt-4">Материалы главы</h3>
 <div class="mb-3">
@@ -103,11 +104,11 @@
             {% endif %}
         </strong>
         <span class="badge
-            {% if material.material_type == 'file' %}bg-primary
+            {% if material.material_type == 'file' %}bg-success
             {% elif material.material_type == 'article' %}bg-success
-            {% elif material.material_type == 'test' %}bg-info
-            {% elif material.material_type == 'video' %}bg-warning
-            {% elif material.material_type == 'link' %}bg-dark{% endif %}">
+            {% elif material.material_type == 'test' %}bg-success
+            {% elif material.material_type == 'video' %}bg-success
+            {% elif material.material_type == 'link' %}bg-success{% endif %}">
             {% if material.material_type == 'file' %}
                 {% if material.is_pdf %}PDF
                 {% elif material.is_word %}Word

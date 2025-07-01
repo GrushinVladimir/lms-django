@@ -672,7 +672,7 @@ def teacher_dashboard(request):
     files_with_answers = ChapterFile.objects.filter(
         chapter__subject__teachers=teacher_profile,
         provide_answer=True
-    ).exclude(file_answers__isnull=True).distinct().prefetch_related('file_answers')
+    ).exclude(answers__isnull=True).distinct().prefetch_related('answers')
 
     context = {
         'tests': tests,
@@ -1295,30 +1295,41 @@ def chapter_detail_student(request, chapter_id):
     articles = Article.objects.filter(chapter=chapter).order_by('position')
     tests = Test.objects.filter(chapter=chapter).order_by('position')
     videos = Video.objects.filter(chapter=chapter).order_by('position')
-    links = Link.objects.filter(chapter=chapter).order_by('position')  # Вот здесь получаем все ссылки
+    links = Link.objects.filter(chapter=chapter).order_by('position')
 
     # Получаем ContentType для каждого типа материала
     file_ct = ContentType.objects.get_for_model(ChapterFile)
     article_ct = ContentType.objects.get_for_model(Article)
     test_ct = ContentType.objects.get_for_model(Test)
     video_ct = ContentType.objects.get_for_model(Video)
-    link_ct = ContentType.objects.get_for_model(Link)  # ContentType для ссылок
+    link_ct = ContentType.objects.get_for_model(Link)
 
     # Получаем все отметки о выполнении для текущего пользователя
     completed_materials = MaterialCompletion.objects.filter(
         user=request.user,
-        content_type__in=[file_ct, article_ct, test_ct, video_ct, link_ct],  # Включаем link_ct
+        content_type__in=[file_ct, article_ct, test_ct, video_ct, link_ct],
         object_id__in=[m.id for m in chain(files, articles, tests, videos, links)]
     ).values_list('content_type', 'object_id')
 
     completed_set = {(ct, obj_id) for ct, obj_id in completed_materials}
 
+    # Получаем все ответы пользователя для файлов в этой главе
+    user_answers = FileAnswer.objects.filter(
+        student=request.user,
+        chapter_file__in=files
+    ).select_related('chapter_file')
+
+    # Создаем словарь для быстрого доступа к ответам по ID файла
+    answers_dict = {answer.chapter_file_id: answer for answer in user_answers}
+
     # Добавляем информацию о материалах
     all_materials = []
     for material in chain(files, articles, tests, videos, links):
-        # Правильно определяем тип материала
+        # Определяем тип материала
         if isinstance(material, ChapterFile):
             material.material_type = 'file'
+            # Добавляем ответ пользователя, если он есть
+            material.user_answer = answers_dict.get(material.id, None)
         elif isinstance(material, Article):
             material.material_type = 'article'
         elif isinstance(material, Test):
@@ -1347,7 +1358,6 @@ def chapter_detail_student(request, chapter_id):
         'progress': progress,
         'student': student_profile
     })
-
 
 @require_POST
 @login_required

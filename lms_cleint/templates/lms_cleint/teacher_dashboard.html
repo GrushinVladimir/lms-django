@@ -110,7 +110,8 @@
                             </thead>
                             <tbody>
                                 {% for file in files_with_answers %}
-                                    {% for answer in file.file_answers.all %}
+                                   {% for answer in file.file_answers.all %}
+
                                     <tr>
                                         <td>{{ file.display_name }}</td>
                                         <td>{{ file.chapter.name }}</td>

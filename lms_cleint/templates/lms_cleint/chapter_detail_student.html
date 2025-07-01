@@ -70,8 +70,7 @@
 <div class="container py-4">
     <div class="row mb-4">
         <div class="col">
-            <h2>{{ chapter.name }}</h2>
-            <p class="text-muted">{{ chapter.subject.name }}</p>
+            <p>{{ chapter.name }} / {{ chapter.subject.name }}</p>
             <!-- Прогресс бар -->
             <div class="progress mb-3">
                 <div id="progress-bar" class="progress-bar" role="progressbar"
@@ -121,7 +120,7 @@
                             {% elif material.material_type == 'article' %}
                                 {{ material.title }}
                             {% elif material.material_type == 'test' %}
-                                {{ material.title }}
+                                {{ material.title }}                                                
                             {% elif material.material_type == 'video' %}
                                 {{ material.title }}
                             {% elif material.material_type == 'link' %}
@@ -129,11 +128,11 @@
                             {% endif %}
                         </strong>
                         <span class="badge
-                            {% if material.material_type == 'file' %}bg-primary
+                            {% if material.material_type == 'file' %}bg-success
                             {% elif material.material_type == 'article' %}bg-success
-                            {% elif material.material_type == 'test' %}bg-info
-                            {% elif material.material_type == 'video' %}bg-warning
-                            {% elif material.material_type == 'link' %}bg-dark{% endif %}">
+                            {% elif material.material_type == 'test' %}bg-success
+                            {% elif material.material_type == 'video' %}bg-success
+                            {% elif material.material_type == 'link' %}bg-success{% endif %}">
                             {% if material.material_type == 'file' %}
                                 {% if material.is_pdf %}PDF
                                 {% elif material.is_word %}Word
@@ -143,6 +142,7 @@
                                 Статья
                             {% elif material.material_type == 'test' %}
                                 Тест
+
                             {% elif material.material_type == 'video' %}
                                 Видео
                             {% elif material.material_type == 'link' %}
@@ -152,47 +152,30 @@
                     </div>
                 </div>
                 <!-- Содержимое материала -->
-                <div class="material-actions">
+             <div class="material-actions">
                     {% if material.material_type == 'file' %}
-                        <a href="{{ material.file.url }}" target="_blank" class="btn btn-sm btn-outline-primary me-2">
-                            <i class="fas fa-download"></i> Скачать
-                        </a>
-                        {% if material.provide_answer %}
-                        <div class="answer-section mt-3">
-                            <h6>Отправить ответ:</h6>
-                            <form id="answerForm_{{ material.id }}" class="d-flex align-items-center">
-                                <input type="file" name="answer_file" class="form-control form-control-sm me-2" required>
-                                <button type="button" onclick="uploadAnswer({{ material.id }})" class="btn btn-sm btn-primary">
-                                    Отправить
-                                </button>
-                            </form>
-                            {% if material.user_answer %}
-                            <div class="mt-2">
-                                <small>Ваш ответ:
-                                    <a href="{{ material.user_answer.file.url }}" target="_blank">
-                                        {{ material.user_answer.file.name|slice:"20" }}{% if material.user_answer.file.name|length > 20 %}...{% endif %}
-                                    </a>
-                                </small>
-                            </div>
-                            {% endif %}
-                        </div>
+
+    {% if material.provide_answer %}
+
+                {% if material.user_answer %}     
+            <small>Ваш ответ:
+                <a href="{{ material.user_answer.file.url }}" target="_blank">
+                    {{ material.user_answer.file.name|slice:"20" }}{% if material.user_answer.file.name|length > 20 %}...{% endif %}
+                </a>
+            </small>
+        {% endif %}
+        <button class="btn btn-sm btn-primary" data-bs-toggle="modal" 
+                data-bs-target="#addAnswerModal" 
+                data-file-id="{{ material.id }}">
+            <i class="fas fa-upload"></i> Загрузить ответ
+        </button>
+        <a href="{{ material.file.url }}" target="_blank" class="btn btn-sm btn-outline-primary me-2"><i class="fas fa-download"></i> Скачать</a>
                         {% endif %}
-                    {% elif material.material_type == 'article' %}
-                        <a href="{% url 'article_detail' material.id %}" class="btn btn-sm btn-primary">
-                            <i class="fas fa-external-link-alt"></i> Перейти
-                        </a>
-                    {% elif material.material_type == 'test' %}
-                        <a href="{% url 'view_test' material.id %}" class="btn btn-sm btn-primary">
-                            <i class="fas fa-play"></i> Пройти тест
-                        </a>
-                    {% elif material.material_type == 'video' %}
-                        <button class="btn btn-sm btn-primary" onclick="openVideoModal('{% if material.video_file %}{{ material.video_file.url }}{% else %}{{ material.video_url|default:'' }}{% endif %}')">
-                            <i class="fas fa-play"></i> Воспроизвести
-                        </button>
-                    {% elif material.material_type == 'link' %}
-                        <a href="{{ material.url }}" target="_blank" class="btn btn-sm btn-primary">
-                            <i class="fas fa-external-link-alt"></i> Перейти
-                        </a>
+        {% elif material.material_type == 'test' %}
+            <div class="btn-group">
+                <a href="{% url 'view_test' material.id %}" class="btn btn-sm btn-info">Выполнить тест</a>
+
+            </div>
                     {% endif %}
                 </div>
             </div>
@@ -225,6 +208,7 @@
         </div>
     </div>
 </div>
+
 <!-- Модальное окно для просмотра видео -->
 <div id="videoModal" class="video-modal">
     <div class="video-modal-content">
@@ -232,10 +216,56 @@
         <div id="videoContainer"></div>
     </div>
 </div>
+{% include 'lms_cleint/modals/add_answer.html' %}
+
 {% endblock %}
 {% block extra_js %}
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.14.0/Sortable.min.js"></script>
 <script>
+    // Handle the answer modal
+    document.addEventListener('DOMContentLoaded', function() {
+        const answerModal = document.getElementById('addAnswerModal');
+        if (answerModal) {
+            answerModal.addEventListener('show.bs.modal', function(event) {
+                const button = event.relatedTarget;
+                const fileId = button.getAttribute('data-file-id');
+                document.getElementById('fileId').value = fileId;
+            });
+            
+            // Handle form submission
+            const answerForm = document.getElementById('answerUploadForm');
+            if (answerForm) {
+                answerForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    const formData = new FormData(this);
+                    
+                    fetch('/upload_answer/', {
+                        method: 'POST',
+                        body: formData,
+                        headers: {
+                            'X-CSRFToken': getCookie('csrftoken')
+                        }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'success') {
+                            showToast('Ответ успешно загружен');
+                            // Close the modal
+                            bootstrap.Modal.getInstance(answerModal).hide();
+                            // Reload the page to show the new answer
+                            setTimeout(() => location.reload(), 1000);
+                        } else {
+                            showToast('Ошибка при загрузке ответа: ' + data.message, 'danger');
+                        }
+                    })
+                    .catch(error => {
+                        showToast('Ошибка при загрузке ответа', 'danger');
+                        console.error('Error:', error);
+                    });
+                });
+            }
+        }
+    });
 // Глобальные переменные
 let currentMaterialToComplete = null;
 
