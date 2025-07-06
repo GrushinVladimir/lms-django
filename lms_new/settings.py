@@ -67,6 +67,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'lms_cleint.context_processors.greeting_context',
             ],
         },
     },
@@ -118,7 +119,10 @@ USE_TZ = True
 
 
 STATIC_URL = '/static/'
-#STATICFILES_DIRS = [BASE_DIR / 'static']
+STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+STATICFILES_DIRS = [
+    os.path.join(BASE_DIR, 'lms_cleint/static'),
+]
 
 # Media files
 MEDIA_URL = '/media/'

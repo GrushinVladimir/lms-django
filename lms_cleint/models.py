@@ -130,6 +130,7 @@ class ChapterFile(models.Model):
     position = models.PositiveIntegerField(default=0)
     completed = models.BooleanField(default=False)
     provide_answer = models.BooleanField(default=False)
+
     completed_by = models.ManyToManyField(
         CustomUser,
         through='FileCompletion',

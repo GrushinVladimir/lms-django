@@ -11,18 +11,38 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
     <style>
+        html, body {
+height: 100%;
+        }
+
         body {
-            padding-top: 20px;
-            background-color: #f8f9fa;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh; /* Занимает минимум весь экран */
+        }
+
+        .content {
+            flex: 1; /* Растягивается, прижимая футер вниз */
+
+                    display: flex;  /* Добавлено */
+    flex-direction: column;  /* Добавлено */
+        }
+
+        footer {
+    background: #333;
+    color: white;
+    height: 8vh;
+    display: flex
+;
+    text-align: center;
+    opacity: .9;
+    align-items: center;
+    justify-content: space-evenly;
         }
         .navbar {
             margin-bottom: 20px;
         }
-        .footer {
-            margin-top: 50px;
-            padding: 20px 0;
-            background-color: #f5f5f5;
-        }
+
         .teacher-info:hover {
             cursor: help;
         }
@@ -34,12 +54,23 @@
 .toast-body{
     padding:1rem;
 }
+.navy{
+    display: flex;
+    list-style: none;
+    justify-content: space-between;
+}
+.navy div{
+    display: flex;
+    list-style: none;
+    justify-content: space-between;
+}
     </style>
     
     {% block extra_css %}{% endblock %}
 </head>
 <body>
-    <div class="container">
+    <div class="container-fluid h-100 content p-0 m-0">
+        <div class="col-md-12 m-auto ">
     <!--Уведомления-->
 <div class="position-fixed top-0 p-3" style="z-index: 11; right: 0px; width: 400px;" >
   <div class="toast-container">
@@ -51,47 +82,31 @@
   </div>
 </div>
         <!-- Навигационная панель -->
-        <nav class="navbar navbar-expand-lg navbar-light bg-light rounded">
-            <div class="container-fluid">
-                <a class="navbar-brand" href="{% url 'course_list' %}">Дистанционное обучение</a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                    <span class="navbar-toggler-icon"></span>
-                </button>
-                <div class="collapse navbar-collapse" id="navbarNav">
-                    <ul class="navbar-nav me-auto">
+                    <ul class="me-auto navy">
                         {% if user.is_authenticated %}
-                            <li class="nav-item">
-                                <a class="nav-link" href="{% url 'course_list' %}">Курсы</a>
-                            </li>
-
-                            <li class="nav-item">
-                                <a class="nav-link" href="{% url 'teacher_dashboard' %}?test_id={{ test.id }}">Дашборд</a>
+                            <li class="">
+                                <a class="" href="{% url 'teacher_dashboard' %}?test_id={{ test.id }}">Дашборд</a>
                             </li>
                             {% if user.is_teacher or user.is_superuser %}
-                                <li class="nav-item">
+                                <li class="">
                                     <a class="nav-link" href="{% url 'course_create' %}">Создать курс</a>
                                 </li>
                             {% endif %}
-                        {% endif %}
-                    </ul>
-                    <ul class="navbar-nav">
+                        {% endif %}                    
                         {% if user.is_authenticated %}
-                            <li class="nav-item">
-                                <span class="navbar-text">Вы вошли как: {{ user.username }}</span>
+                        <div>
+                            <li class="">
+                                <span class="">Вы вошли как: {{ user.username }}</span>
                             </li>
-                            <li class="nav-item">
-                                <a class="nav-link" href="{% url 'logout' %}">Выйти</a>
+                            <li class="">
+                                <a class="" href="{% url 'logout' %}">Выйти</a>
                             </li>
+                        </div>
                         {% else %}
-                            <li class="nav-item">
-                                <a class="nav-link" href="{% url 'login' %}">Войти</a>
-                            </li>
-                        {% endif %}
-                    </ul>
-                </div>
-            </div>
-        </nav>
 
+                         {% endif %}
+                    </ul>
+             
         <!-- Основное содержимое -->
         <div class="row">
             <div class="col-md-12">
@@ -108,12 +123,12 @@
             </div>
         </div>
     </div>
-
+</div>
     <!-- Подвал -->
-    <footer class="footer">
-        <div class="container text-center">
-            <span class="text-muted">Система дистанционного обучения © {% now "Y" %}</span>
-        </div>
+    <footer>
+
+            <span class="">Система дистанционного обучения © {% now "Y" %}</span>
+
     </footer>
 
     <!-- Bootstrap JS и зависимости -->
