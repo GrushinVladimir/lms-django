@@ -88,4 +88,12 @@ urlpatterns = [
     path('teacher/chapter/<int:chapter_id>/', views.chapter_detail, name='chapter_detail'),
     path('chapter_detail_student/<int:chapter_id>/', views.chapter_detail_student, name='chapter_detail_student'),
     path('chapter/<int:chapter_id>/', views.redirect_to_chapter_view, name='chapter_redirect'),
+
+    path('get_grade_details/<int:answer_id>/', views.get_grade_details, name='get_grade_details'),
+    path('mark_grade_as_read/<int:answer_id>/', views.mark_grade_as_read, name='mark_grade_as_read'),
+    path('get_student_answers/', views.get_student_answers, name='get_student_answers'),
+
+
+
+
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

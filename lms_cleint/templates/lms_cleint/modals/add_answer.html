@@ -1,24 +1,22 @@
-
-<!-- Модальное окно для добавления ответа -->
-<div class="modal fade" id="addAnswerModal" tabindex="-1" aria-labelledby="addAnswerModalLabel" aria-hidden="true">
+<div class="modal fade" id="addAnswerModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="addAnswerModalLabel">Добавить ответ</h5>
+                <h5 class="modal-title">Добавить ответ</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form method="post" enctype="multipart/form-data" id="answerUploadForm">
+            <form id="answerUploadForm" method="post" enctype="multipart/form-data" action="{% url 'upload_answer' %}">
+                {% csrf_token %}
                 <div class="modal-body">
-                    {% csrf_token %}
-                    <input type="hidden" id="fileId" name="file_id">
+                    <input type="hidden" name="file_id" id="fileId" value="">
                     <div class="mb-3">
-                        <label for="answer_file" class="form-label">Файл ответа</label>
-                        <input type="file" class="form-control" id="answer_file" name="answer_file" required>
+                        <label for="answerFile" class="form-label">Выберите файл ответа</label>
+                        <input class="form-control" type="file" id="answerFile" name="answer_file" required>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Закрыть</button>
-                    <button type="submit" class="btn btn-primary">Добавить</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                    <button type="submit" class="btn btn-primary">Отправить</button>
                 </div>
             </form>
         </div>

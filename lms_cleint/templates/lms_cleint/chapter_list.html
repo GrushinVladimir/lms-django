@@ -7,8 +7,10 @@
         <tr>
             <th>Название главы</th>
             <th>Преподаватели</th>
+             {% if user.is_teacher or user.teacherprofile %}
             <th>Группы</th>
             <th>Действия</th>
+            {% endif %}
         </tr>
     </thead>
     <tbody>
@@ -22,6 +24,7 @@
                 Нет преподавателей
                 {% endfor %}
             </td>
+            {% if user.is_teacher or user.teacherprofile %}
             <td>
                 {% for group in chapter.student_groups.all %}
                 <a href="{% url 'group_list' group.id %}">{{ group.group_number }}</a>{% if not forloop.last %}, {% endif %}
@@ -29,10 +32,14 @@
                 Нет групп
                 {% endfor %}
             </td>
+             
             <td>
                 <a href="{% url 'chapter_detail' chapter.id %}" class="btn btn-sm btn-primary">Перейти</a>
+               
                 <a href="{% url 'chapter_delete' chapter.id %}" class="btn-sm btn btn-danger">Удалить</a>
+               
             </td>
+             {% endif %}
         </tr>
         {% empty %}
         <tr>
@@ -43,7 +50,9 @@
 </table>
 
 <div class="mt-3">
+    {% if user.is_teacher or user.teacherprofile %}
     <a href="{% url 'chapter_create' subject.id %}" class="btn btn-success">Создать новую главу</a>
+    {% endif %}
     <a href="{% url 'subject_list' subject.course.id %}" class="btn btn-secondary">Вернуться к предметам</a>
 </div>
 {% endblock %}

@@ -64,6 +64,40 @@
         text-decoration: none;
         cursor: pointer;
     }
+    /* Стили для уведомлений */
+    .notification-badge {
+        position: relative;
+        display: inline-block;
+        margin-right: 10px;
+    }
+    .notification-dot {
+        position: absolute;
+        top: -5px;
+        right: -5px;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background-color: red;
+    }
+    .grade-modal-content {
+        padding: 20px;
+    }
+    .grade-badge {
+        font-size: 1.1em;
+        padding: 5px 10px;
+    }
+        .notification-dot {
+        position: absolute;
+        top: -5px;
+        right: -5px;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background-color: red;
+    }
+    .notification-dot.notification-seen {
+        background-color: #6c757d; /* Серый цвет для просмотренных */
+    }
 </style>
 {% endblock %}
 {% block content %}
@@ -84,9 +118,19 @@
     </div>
     <h3 class="mt-4">Материалы главы</h3>
     <ul id="materials-list" class="list-group" data-chapter-id="{{ chapter.id }}">
+        
         {% for material in materials %}
+        
         <li class="list-group-item mb-3" data-id="{{ material.material_type }}_{{ material.id }}" data-type="{{ material.material_type }}">
+<!-- Иконка уведомления об оценке -->
+{% if material.material_type == 'file' and material.user_answer and material.user_answer.grade %}
+<a href="#" class="notification-badge" data-bs-toggle="modal" data-answer-id="{{ material.user_answer.id }}">
+    <i class="fas fa-bell text-warning"></i>
+    <span class="notification-dot {% if not material.user_answer.is_new %}notification-seen{% endif %}"></span>
+</a>
+{% endif %}
             <div class="material-content">
+                
                 <!-- Кнопка выполнения и название материала -->
                 <div class="d-flex align-items-center">
                     <button class="btn btn-sm
@@ -102,6 +146,8 @@
                         {% if material.user_completed %}Выполнено{% else %}Выполнить{% endif %}
                     </button>
                     <div class="ms-3">
+
+                        
                         <!-- Иконка в зависимости от типа материала -->
                         {% if material.material_type == 'file' %}
                             <i class="fas fa-file me-2"></i>
@@ -116,13 +162,21 @@
                         {% endif %}
                         <strong>
                             {% if material.material_type == 'file' %}
-                                {{ material.display_name|default:material.file.name }}
+                                <a href="{{ material.file.url }}" target="_blank">
+                                    {{ material.display_name|default:material.file.name }}
+                                </a> 
                             {% elif material.material_type == 'article' %}
-                                {{ material.title }}
+                          
+                                <a href="{% url 'article_detail' material.id %}" target="_blank">{{ material.title }}</a>
+                                
                             {% elif material.material_type == 'test' %}
-                                {{ material.title }}                                                
+                                <a href="{% url 'view_test' material.id %}">
+                                    {{ material.title }}
+                                </a>                                           
                             {% elif material.material_type == 'video' %}
+                <a href="javascript:void(0)" onclick="openVideoModal('{{ material.video_url }}')">Воспроизвести</button>
                                 {{ material.title }}
+                </a> 
                             {% elif material.material_type == 'link' %}
                                 <a href="{{ material.url }}" target="_blank">{{ material.title }}</a>
                             {% endif %}
@@ -142,7 +196,6 @@
                                 Статья
                             {% elif material.material_type == 'test' %}
                                 Тест
-
                             {% elif material.material_type == 'video' %}
                                 Видео
                             {% elif material.material_type == 'link' %}
@@ -152,30 +205,24 @@
                     </div>
                 </div>
                 <!-- Содержимое материала -->
-             <div class="material-actions">
+                <div class="material-actions">
                     {% if material.material_type == 'file' %}
-
-    {% if material.provide_answer %}
-
-                {% if material.user_answer %}     
-            <small>Ваш ответ:
-                <a href="{{ material.user_answer.file.url }}" target="_blank">
-                    {{ material.user_answer.file.name|slice:"20" }}{% if material.user_answer.file.name|length > 20 %}...{% endif %}
-                </a>
-            </small>
-        {% endif %}
-        <button class="btn btn-sm btn-primary" data-bs-toggle="modal" 
-                data-bs-target="#addAnswerModal" 
-                data-file-id="{{ material.id }}">
-            <i class="fas fa-upload"></i> Загрузить ответ
-        </button>
-        <a href="{{ material.file.url }}" target="_blank" class="btn btn-sm btn-outline-primary me-2"><i class="fas fa-download"></i> Скачать</a>
+                        {% if material.provide_answer %}
+                            {% if material.user_answer %}     
+                                <small>Загруженный ответ:<br>
+                                    <a href="{{ material.user_answer.file.url }}" target="_blank">
+                                        {{ material.user_answer.file.name|slice:"20" }}{% if material.user_answer.file.name|length > 20 %}...{% endif %}
+                                    </a>
+                                </small>
+                            {% endif %}
+                            <button class="btn btn-sm btn-primary" data-bs-toggle="modal" 
+                                    data-bs-target="#addAnswerModal" 
+                                    data-file-id="{{ material.id }}">
+                                <i class="fas fa-upload"></i> Добавить ответ
+                            </button>
                         {% endif %}
-        {% elif material.material_type == 'test' %}
-            <div class="btn-group">
-                <a href="{% url 'view_test' material.id %}" class="btn btn-sm btn-info">Выполнить тест</a>
-
-            </div>
+                    {% elif material.material_type == 'test' %}
+                        <div class="btn-group"></div>
                     {% endif %}
                 </div>
             </div>
@@ -190,6 +237,25 @@
         </a>
     </div>
 </div>
+
+<!-- Модальное окно уведомления об оценке -->
+<div class="modal fade" id="gradeNotificationModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Ваша оценка</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body grade-modal-content" id="gradeModalContent">
+                <!-- Содержимое будет загружено динамически -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" data-bs-dismiss="modal">ОК</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- Модальное окно подтверждения выполнения -->
 <div class="modal fade" id="confirmCompletionModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
@@ -223,279 +289,390 @@
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.14.0/Sortable.min.js"></script>
 <script>
     // Handle the answer modal
-    document.addEventListener('DOMContentLoaded', function() {
-        const answerModal = document.getElementById('addAnswerModal');
-        if (answerModal) {
-            answerModal.addEventListener('show.bs.modal', function(event) {
-                const button = event.relatedTarget;
-                const fileId = button.getAttribute('data-file-id');
-                document.getElementById('fileId').value = fileId;
-            });
-            
-            // Handle form submission
-            const answerForm = document.getElementById('answerUploadForm');
-            if (answerForm) {
-                answerForm.addEventListener('submit', function(e) {
-                    e.preventDefault();
-                    const formData = new FormData(this);
-                    
-                    fetch('/upload_answer/', {
-                        method: 'POST',
-                        body: formData,
-                        headers: {
-                            'X-CSRFToken': getCookie('csrftoken')
-                        }
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.status === 'success') {
-                            showToast('Ответ успешно загружен');
-                            // Close the modal
-                            bootstrap.Modal.getInstance(answerModal).hide();
-                            // Reload the page to show the new answer
-                            setTimeout(() => location.reload(), 1000);
-                        } else {
-                            showToast('Ошибка при загрузке ответа: ' + data.message, 'danger');
-                        }
-                    })
-                    .catch(error => {
-                        showToast('Ошибка при загрузке ответа', 'danger');
-                        console.error('Error:', error);
-                    });
-                });
-            }
-        }
-    });
-// Глобальные переменные
-let currentMaterialToComplete = null;
-
-// Функции для работы с видео
-function openVideoModal(videoUrl) {
-    const modal = document.getElementById('videoModal');
-    const videoContainer = document.getElementById('videoContainer');
-    if (videoUrl.includes('youtube.com') || videoUrl.includes('youtu.be')) {
-        let videoId = videoUrl.split('v=')[1];
-        if (!videoId) videoId = videoUrl.split('youtu.be/')[1];
-        if (videoId) videoId = videoId.split('&')[0];
-        videoContainer.innerHTML = `
-            <iframe width="100%" height="700"
-                src="https://www.youtube.com/embed/${videoId}"
-                frameborder="0"
-                allowfullscreen>
-            </iframe>`;
-    } else {
-        videoContainer.innerHTML = `
-            <video width="100%" height="700" controls>
-                <source src="${videoUrl}" type="video/mp4">
-                Ваш браузер не поддерживает видео.
-            </video>`;
-    }
-    modal.style.display = "block";
-}
-
-function closeVideoModal() {
-    document.getElementById('videoModal').style.display = "none";
-    document.getElementById('videoContainer').innerHTML = '';
-}
-
-// Функция для получения CSRF-токена
-function getCookie(name) {
-    let cookieValue = null;
-    if (document.cookie && document.cookie !== '') {
-        const cookies = document.cookie.split(';');
-        for (let i = 0; i < cookies.length; i++) {
-            const cookie = cookies[i].trim();
-            if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                break;
-            }
-        }
-    }
-    return cookieValue;
-}
-
-// Функция для показа уведомлений
-function showToast(message, type = 'success') {
-    const toastContainer = document.querySelector('.toast-container') || (() => {
-        const container = document.createElement('div');
-        container.className = 'toast-container position-fixed top-0 end-0 p-3';
-        document.body.appendChild(container);
-        return container;
-    })();
-    const toastId = 'toast-' + Date.now();
-    toastContainer.insertAdjacentHTML('beforeend', `
-        <div id="${toastId}" class="toast align-items-center text-white bg-${type} border-0" role="alert">
-            <div class="d-flex">
-                <div class="toast-body">${message}</div>
-                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
-            </div>
-        </div>
-    `);
-    const toast = new bootstrap.Toast(document.getElementById(toastId));
-    toast.show();
-    // Автоматическое удаление через 5 секунд
-    setTimeout(() => toast.dispose(), 5000);
-}
-
-// Функция для обновления прогресса главы
-function updateChapterProgress() {
-    const chapterId = document.getElementById('materials-list')?.dataset.chapterId;
-    if (!chapterId) return;
-    fetch(`/get_progress/?chapter_id=${chapterId}`, {
-        headers: {
-            'X-Requested-With': 'XMLHttpRequest'
-        }
-    })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error('Network response was not ok');
-        }
-        return response.json();
-    })
-    .then(data => {
-        if (data.status === 'success') {
-            animateProgressBar(data.progress);
-        }
-    })
-    .catch(error => console.error('Ошибка обновления прогресса:', error));
-}
-
-// Инициализация сортировки
-function initSortable(chapterId) {
-    const materialsList = document.getElementById('materials-list');
-    if (materialsList) {
-        new Sortable(materialsList, {
-            animation:35,
-            ghostClass: 'sortable-ghost',
-            handle: '.drag-handle',
-            onEnd: function() {
-                const order = Array.from(materialsList.children).map(item => item.dataset.id);
-                saveMaterialsOrder(chapterId, order);
-            }
-        });
-    }
-}
-
-// Сохранение порядка материалов
-function saveMaterialsOrder(chapterId, order) {
-    fetch(`/chapter/${chapterId}/update_materials_order/`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': getCookie('csrftoken'),
-            'X-Requested-With': 'XMLHttpRequest'
-        },
-        body: JSON.stringify({order: order})
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.status === 'success') {
-            showToast('Порядок материалов сохранён');
-        } else {
-            showToast('Ошибка при сохранении порядка', 'danger');
-        }
-    })
-    .catch(error => {
-        showToast('Ошибка при сохранении порядка', 'danger');
-        console.error('Ошибка:', error);
-    });
-}
-
-// Функция для подтверждения выполнения материала
-function confirmMaterialCompletion() {
-    if (!currentMaterialToComplete) return;
-    const { id, type, element } = currentMaterialToComplete;
-    const url = `/complete_material/${type}/${id}/`;
-    // Блокируем кнопку на время выполнения запроса
-    element.disabled = true;
-    element.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span> Обработка...';
-    fetch(url, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': getCookie('csrftoken'),
-            'X-Requested-With': 'XMLHttpRequest'
-        },
-        body: JSON.stringify({})
-    })
-    .then(response => {
-        if (!response.ok) {
-            return response.text().then(text => {
-                throw new Error(`Ошибка сервера: ${response.status} - ${text}`);
-            });
-        }
-        return response.json();
-    })
-    .then(data => {
-        if (data.status === 'success') {
-            // Обновляем кнопку
-            element.classList.remove('btn-outline-secondary');
-            element.classList.add('btn-success');
-            element.textContent = 'Выполнено';
-            // Обновляем прогресс
-            updateChapterProgress();
-            // Закрываем модальное окно
-            bootstrap.Modal.getInstance(document.getElementById('confirmCompletionModal')).hide();
-            showToast('Материал отмечен как выполненный');
-        } else {
-            throw new Error(data.message || 'Неизвестная ошибка');
-        }
-    })
-    .catch(error => {
-        // Восстанавливаем кнопку при ошибке
-        element.disabled = false;
-        element.textContent = element.textContent.includes('Выполнено') ? 'Выполнено' : 'Выполнить';
-        showToast(`Ошибка: ${error.message}`, 'danger');
-        console.error('Ошибка:', error);
-    });
-}
-
-// Инициализация при загрузке страницы
+// Обработчик отправки формы
 document.addEventListener('DOMContentLoaded', function() {
-    const chapterId = document.getElementById('materials-list')?.dataset.chapterId;
-    // Инициализация прогресс-бара
-    updateChapterProgress();
-    // Инициализация сортировки
-    if (chapterId) {
-        initSortable(chapterId);
-    }
-    // Обработчики для кнопок выполнения (исключаем тесты)
-    document.querySelectorAll('.complete-btn:not(.disabled):not([data-type="test"])').forEach(btn => {
-        btn.addEventListener('click', function() {
-            currentMaterialToComplete = {
-                id: this.dataset.id,
-                type: this.dataset.type,
-                element: this
-            };
-            const modal = new bootstrap.Modal(document.getElementById('confirmCompletionModal'));
-            modal.show();
+    // Обработчик модального окна
+    const answerModal = document.getElementById('addAnswerModal');
+    if (answerModal) {
+        answerModal.addEventListener('show.bs.modal', function(event) {
+            const button = event.relatedTarget;
+            const fileId = button.getAttribute('data-file-id');
+            document.getElementById('fileId').value = fileId;
         });
-    });
-    // Подтверждение выполнения материала
-    document.getElementById('confirmCompletionBtn').addEventListener('click', confirmMaterialCompletion);
+        
+        // Обработчик отправки формы
+        const answerForm = document.getElementById('answerUploadForm');
+        if (answerForm) {
+            answerForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                const form = this;
+                const formData = new FormData(form);
+                const submitBtn = form.querySelector('button[type="submit"]');
+                
+                // Блокируем кнопку на время отправки
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span> Отправка...';
+
+                fetch('/upload_answer/', {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-CSRFToken': getCookie('csrftoken'),
+                        'X-Requested-With': 'XMLHttpRequest'  // Добавляем этот заголовок
+                    }
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        return response.json().then(err => { throw err; });
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.status === 'success') {
+                        showToast('Ответ успешно загружен');
+                        bootstrap.Modal.getInstance(answerModal).hide();
+                        setTimeout(() => location.reload(), 1000);
+                    } else {
+                        throw new Error(data.message || 'Неизвестная ошибка');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showToast('Ошибка: ' + (error.message || 'При загрузке ответа'), 'danger');
+                })
+                .finally(() => {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = 'Отправить';
+                });
+            });
+        }
+    }
 });
 
-// Анимация прогресс-бара
-function animateProgressBar(targetProgress) {
-    const progressBar = document.getElementById('progress-bar');
-    const currentWidth = parseFloat(progressBar.style.width) || 0;
-    const duration = 500; // milliseconds
-    const startTime = performance.now();
-    // Убедимся, что targetProgress - число
-    targetProgress = parseFloat(targetProgress) || 0;
-    function updateProgress(currentTime) {
-        const elapsed = currentTime - startTime;
-        const progress = Math.min(elapsed / duration, 1);
-        const currentProgress = currentWidth + (targetProgress - currentWidth) * progress;
-        // Обновляем прогресс-бар
-        progressBar.style.width = `${currentProgress}%`;
-        progressBar.setAttribute('aria-valuenow', Math.round(currentProgress));
-        progressBar.textContent = `${Math.round(currentProgress)}%`;
-        if (progress < 1) {
-            requestAnimationFrame(updateProgress);
+       // Обработчик уведомлений об оценках
+// Обработчик уведомлений об оценках
+document.querySelectorAll('.notification-badge').forEach(icon => {
+    icon.addEventListener('click', function(e) {
+        e.preventDefault();
+        const answerId = this.getAttribute('data-answer-id');
+        const notificationDot = this.querySelector('.notification-dot');
+        
+        // Инициализация модального окна
+        const modal = new bootstrap.Modal(document.getElementById('gradeNotificationModal'));
+        
+        // Обработчик закрытия модального окна
+        document.getElementById('gradeNotificationModal').addEventListener('hidden.bs.modal', function() {
+            // После закрытия ничего дополнительного не делаем,
+            // так как пометку о прочтении делаем сразу при открытии
+        });
+
+        // Загружаем данные оценки
+        fetch(`/get_grade_details/${answerId}/`, {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRFToken': getCookie('csrftoken')
+            }
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.status === 'success') {
+                const modalBody = document.getElementById('gradeModalContent');
+                let gradedByHtml = '';
+                
+                if (data.graded_by) {
+                    gradedByHtml = `
+                        <div class="mb-3">
+                            <h6>Преподаватель:</h6>
+                            <p>${data.graded_by}</p>
+                        </div>
+                    `;
+                }
+
+                modalBody.innerHTML = `
+                    <div class="mb-3">
+                        <h6>Оценка: 
+                            <span class="badge grade-badge bg-${data.grade >= 5 ? 'success' : 'warning'}">
+                                ${data.grade}
+                            </span>
+                        </h6>
+                    </div>
+                    ${data.feedback ? `
+                    <div class="mb-3">
+                        <h6>Комментарий:</h6>
+                        <p>${data.feedback}</p>
+                    </div>
+                    ` : ''}
+                    ${gradedByHtml}
+                    <div class="mb-3">
+                        <small class="text-muted">
+                            ${data.graded_at ? `Дата оценки: ${data.graded_at}` : ''}
+                        </small>
+                    </div>
+                `;
+                
+                // Помечаем оценку как прочитанную
+                return fetch(`/mark_grade_as_read/${answerId}/`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': getCookie('csrftoken'),
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
+            } else {
+                throw new Error(data.message || 'Ошибка при загрузке оценки');
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success' && notificationDot) {
+                // Меняем цвет кружка на серый
+                notificationDot.classList.add('notification-seen');
+            }
+        })
+        .catch(error => {
+            console.error('Error loading grade details:', error);
+            showToast('Ошибка загрузки оценки', 'danger');
+        });
+        
+        // Показываем модальное окно
+        modal.show();
+    });
+});
+    // Глобальные переменные
+    let currentMaterialToComplete = null;
+
+    // Функции для работы с видео
+    function openVideoModal(videoUrl) {
+        const modal = document.getElementById('videoModal');
+        const videoContainer = document.getElementById('videoContainer');
+        if (videoUrl.includes('youtube.com') || videoUrl.includes('youtu.be')) {
+            let videoId = videoUrl.split('v=')[1];
+            if (!videoId) videoId = videoUrl.split('youtu.be/')[1];
+            if (videoId) videoId = videoId.split('&')[0];
+            videoContainer.innerHTML = `
+                <iframe width="100%" height="700"
+                    src="https://www.youtube.com/embed/${videoId}"
+                    frameborder="0"
+                    allowfullscreen>
+                </iframe>`;
+        } else {
+            videoContainer.innerHTML = `
+                <video width="100%" height="700" controls>
+                    <source src="${videoUrl}" type="video/mp4">
+                    Ваш браузер не поддерживает видео.
+                </video>`;
+        }
+        modal.style.display = "block";
+    }
+
+    function closeVideoModal() {
+        document.getElementById('videoModal').style.display = "none";
+        document.getElementById('videoContainer').innerHTML = '';
+    }
+
+    // Функция для получения CSRF-токена
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+
+    // Функция для показа уведомлений
+    function showToast(message, type = 'success') {
+        const toastContainer = document.querySelector('.toast-container') || (() => {
+            const container = document.createElement('div');
+            container.className = 'toast-container position-fixed top-0 end-0 p-3';
+            document.body.appendChild(container);
+            return container;
+        })();
+        const toastId = 'toast-' + Date.now();
+        toastContainer.insertAdjacentHTML('beforeend', `
+            <div id="${toastId}" class="toast align-items-center text-white bg-${type} border-0" role="alert">
+                <div class="d-flex">
+                    <div class="toast-body">${message}</div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                </div>
+            </div>
+        `);
+        const toast = new bootstrap.Toast(document.getElementById(toastId));
+        toast.show();
+        // Автоматическое удаление через 5 секунд
+        setTimeout(() => toast.dispose(), 5000);
+    }
+
+    // Функция для обновления прогресса главы
+    function updateChapterProgress() {
+        const chapterId = document.getElementById('materials-list')?.dataset.chapterId;
+        if (!chapterId) return;
+        fetch(`/get_progress/?chapter_id=${chapterId}`, {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.status === 'success') {
+                animateProgressBar(data.progress);
+            }
+        })
+        .catch(error => console.error('Ошибка обновления прогресса:', error));
+    }
+
+    // Инициализация сортировки
+    function initSortable(chapterId) {
+        const materialsList = document.getElementById('materials-list');
+        if (materialsList) {
+            new Sortable(materialsList, {
+                animation:35,
+                ghostClass: 'sortable-ghost',
+                handle: '.drag-handle',
+                onEnd: function() {
+                    const order = Array.from(materialsList.children).map(item => item.dataset.id);
+                    saveMaterialsOrder(chapterId, order);
+                }
+            });
         }
     }
-    requestAnimationFrame(updateProgress);
-}
+
+    // Сохранение порядка материалов
+    function saveMaterialsOrder(chapterId, order) {
+        fetch(`/chapter/${chapterId}/update_materials_order/`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken'),
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify({order: order})
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                showToast('Порядок материалов сохранён');
+            } else {
+                showToast('Ошибка при сохранении порядка', 'danger');
+            }
+        })
+        .catch(error => {
+            showToast('Ошибка при сохранении порядка', 'danger');
+            console.error('Ошибка:', error);
+        });
+    }
+
+    // Функция для подтверждения выполнения материала
+    function confirmMaterialCompletion() {
+        if (!currentMaterialToComplete) return;
+        const { id, type, element } = currentMaterialToComplete;
+        const url = `/complete_material/${type}/${id}/`;
+        // Блокируем кнопку на время выполнения запроса
+        element.disabled = true;
+        element.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span> Обработка...';
+        fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': getCookie('csrftoken'),
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify({})
+        })
+        .then(response => {
+            if (!response.ok) {
+                return response.text().then(text => {
+                    throw new Error(`Ошибка сервера: ${response.status} - ${text}`);
+                });
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.status === 'success') {
+                // Обновляем кнопку
+                element.classList.remove('btn-outline-secondary');
+                element.classList.add('btn-success');
+                element.textContent = 'Выполнено';
+                // Обновляем прогресс
+                updateChapterProgress();
+                // Закрываем модальное окно
+                bootstrap.Modal.getInstance(document.getElementById('confirmCompletionModal')).hide();
+                showToast('Материал отмечен как выполненный');
+            } else {
+                throw new Error(data.message || 'Неизвестная ошибка');
+            }
+        })
+        .catch(error => {
+            // Восстанавливаем кнопку при ошибке
+            element.disabled = false;
+            element.textContent = element.textContent.includes('Выполнено') ? 'Выполнено' : 'Выполнить';
+            showToast(`Ошибка: ${error.message}`, 'danger');
+            console.error('Ошибка:', error);
+        });
+    }
+
+    // Инициализация при загрузке страницы
+    document.addEventListener('DOMContentLoaded', function() {
+        const chapterId = document.getElementById('materials-list')?.dataset.chapterId;
+        // Инициализация прогресс-бара
+        updateChapterProgress();
+        // Инициализация сортировки
+        if (chapterId) {
+            initSortable(chapterId);
+        }
+        // Обработчики для кнопок выполнения (исключаем тесты)
+        document.querySelectorAll('.complete-btn:not(.disabled):not([data-type="test"])').forEach(btn => {
+            btn.addEventListener('click', function() {
+                currentMaterialToComplete = {
+                    id: this.dataset.id,
+                    type: this.dataset.type,
+                    element: this
+                };
+                const modal = new bootstrap.Modal(document.getElementById('confirmCompletionModal'));
+                modal.show();
+            });
+        });
+        // Подтверждение выполнения материала
+        document.getElementById('confirmCompletionBtn').addEventListener('click', confirmMaterialCompletion);
+    });
+
+    // Анимация прогресс-бара
+    function animateProgressBar(targetProgress) {
+        const progressBar = document.getElementById('progress-bar');
+        const currentWidth = parseFloat(progressBar.style.width) || 0;
+        const duration = 500; // milliseconds
+        const startTime = performance.now();
+        // Убедимся, что targetProgress - число
+        targetProgress = parseFloat(targetProgress) || 0;
+        function updateProgress(currentTime) {
+            const elapsed = currentTime - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+            const currentProgress = currentWidth + (targetProgress - currentWidth) * progress;
+            // Обновляем прогресс-бар
+            progressBar.style.width = `${currentProgress}%`;
+            progressBar.setAttribute('aria-valuenow', Math.round(currentProgress));
+            progressBar.textContent = `${Math.round(currentProgress)}%`;
+            if (progress < 1) {
+                requestAnimationFrame(updateProgress);
+            }
+        }
+        requestAnimationFrame(updateProgress);
+    }
 </script>
 {% endblock %}

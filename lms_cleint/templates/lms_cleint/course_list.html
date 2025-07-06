@@ -6,8 +6,10 @@
         <tr>
             <th>Название</th>
             <th>Преподаватели</th>
+             {% if user.is_teacher or user.teacherprofile %}
             <th>Группы</th>
-            <th>Действия</th>
+           <th>Действия</th> 
+           {% endif %}
         </tr>
     </thead>
     <tbody>
@@ -19,16 +21,21 @@
                 <a href="{% url 'teacher_profile' teacher.id %}">{{ teacher.last_name }} {{ teacher.first_name|slice:":1" }}.</a>{% if not forloop.last %}, {% endif %}
                 {% endfor %}
             </td>
+              {% if user.is_teacher or user.teacherprofile %}
             <td>
                 {% for group in course.student_groups.all %}
                 <a href="{% url 'group_list' group.id %}">{{ group.group_number }}</a>{% if not forloop.last %}, {% endif %}
                 {% endfor %}
             </td>
+           
             <td>
                 <a href="{% url 'subject_list' course.id %}" class="btn btn-sm btn-info">Перейти</a>
+               
                 <a href="{% url 'course_edit' course.id %}" class="btn btn-sm btn-primary">Редактировать</a>
                 <a href="{% url 'course_delete' course.id %}" class="btn btn-sm btn-danger">Удалить</a>
+               
             </td>
+             {% endif %}
         </tr>
         {% empty %}
         <tr>
@@ -37,5 +44,7 @@
         {% endfor %}
     </tbody>
 </table>
+{% if user.is_teacher or user.teacherprofile %}
 <a href="{% url 'course_create' %}" class="btn btn-success">Создать новый курс</a>
+{% endif %}
 {% endblock %}

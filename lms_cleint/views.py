@@ -718,46 +718,91 @@ def teacher_dashboard(request):
     return render(request, 'lms_cleint/teacher_dashboard.html', context)
 
 
+@require_POST
+@login_required
+@student_required
+def mark_grade_as_read(request, answer_id):
+    try:
+        answer = get_object_or_404(
+            FileAnswer, 
+            pk=answer_id,
+            student=request.user
+        )
+        answer.is_new = False
+        answer.save()
+        return JsonResponse({'status': 'success'})
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
 
+@require_GET
+@login_required
+@student_required
+def get_grade_details(request, answer_id):
+    try:
+        answer = get_object_or_404(
+            FileAnswer, 
+            pk=answer_id,
+            student=request.user
+        )
+        
+        graded_by_name = ""
+        if answer.graded_by:
+            graded_by_name = f"{answer.graded_by.last_name} {answer.graded_by.first_name} {answer.graded_by.middle_name or ''}".strip()
+        
+        return JsonResponse({
+            'status': 'success',
+            'grade': answer.grade,
+            'feedback': answer.feedback,
+            'graded_by': graded_by_name,
+            'graded_at': answer.graded_at.strftime("%d.%m.%Y %H:%M") if answer.graded_at else None
+        })
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
 
-
+@require_POST
 @login_required
 @teacher_required
-@require_POST
 def grade_file_answer(request):
+    logger.debug("Grade file answer request received")
+
     try:
         answer_id = request.POST.get('answer_id')
         grade = int(request.POST.get('grade'))
         feedback = request.POST.get('feedback', '')
-        
+
+        logger.debug(f"Answer ID: {answer_id}, Grade: {grade}, Feedback: {feedback}")
+
         if not (0 <= grade <= 10):
+            logger.error("Invalid grade value")
             raise ValueError("Оценка должна быть от 0 до 10")
 
         answer = get_object_or_404(
-            FileAnswer, 
+            FileAnswer,
             pk=answer_id,
             chapter_file__chapter__subject__teachers=request.user.teacherprofile
         )
 
+        logger.debug(f"Answer found: {answer}")
+
         answer.grade = grade
         answer.feedback = feedback
+        answer.graded_at = timezone.now()
+        answer.graded_by = request.user.teacherprofile
+        answer.is_new = True
         answer.save()
+
+        logger.debug(f"Answer graded successfully: {answer}")
 
         return JsonResponse({
             'status': 'success',
             'grade': grade,
             'feedback': feedback
         })
-    except ValueError as e:
-        return JsonResponse(
-            {'status': 'error', 'message': str(e)},
-            status=400
-        )
+
     except Exception as e:
-        return JsonResponse(
-            {'status': 'error', 'message': 'Произошла ошибка при сохранении оценки'},
-            status=500
-        )
+        logger.error(f"Error grading file answer: {str(e)}")
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+
 
 
 
@@ -1351,7 +1396,7 @@ def chapter_detail_student(request, chapter_id):
     # Рассчитываем прогресс
     completed_count = sum(1 for m in all_materials if m.user_completed)
     progress = (completed_count / len(all_materials)) * 100 if all_materials else 0
-
+   
     return render(request, 'lms_cleint/chapter_detail_student.html', {
         'chapter': chapter,
         'materials': all_materials,
@@ -1492,53 +1537,150 @@ def get_materials_for_chapter(chapter, user):
     
     return sorted(chain(files, articles, tests, videos, links), key=lambda x: x.position)
 
-
+@require_GET
 @login_required
-@student_required
-@require_POST
-def upload_answer(request):
-    file_id = request.POST.get('file_id')
-    answer_file = request.FILES.get('answer_file')
+@teacher_required
+def get_student_answers(request):
+    file_id = request.GET.get('file_id')
+    group_id = request.GET.get('group_id', 'all')
 
-    if not file_id or not answer_file:
-        return JsonResponse(
-            {'status': 'error', 'message': 'Необходимо указать файл и ID файла'}, 
-            status=400
-        )
+    logger.debug(f"Request received: file_id={file_id}, group_id={group_id}")
 
-    chapter_file = get_object_or_404(ChapterFile, pk=file_id, provide_answer=True)
-    
-    # Проверка что студент имеет доступ к этому файлу
-    student_profile = get_object_or_404(StudentProfile, user=request.user)
-    if not chapter_file.chapter.student_groups.filter(id=student_profile.group.id).exists():
-        return JsonResponse(
-            {'status': 'error', 'message': 'У вас нет доступа к этому файлу'},
-            status=403
-        )
-
-    # Удаляем старый ответ если он есть
-    FileAnswer.objects.filter(chapter_file=chapter_file, student=request.user).delete()
-
-    # Создаем новый ответ
     try:
-        file_answer = FileAnswer.objects.create(
-            chapter_file=chapter_file,
-            student=request.user,
-            file=answer_file
+        file = ChapterFile.objects.select_related('chapter__subject').get(
+            pk=file_id,
+            chapter__subject__teachers=request.user.teacherprofile
         )
-        
-        file_name = os.path.basename(file_answer.file.name)
+
+        logger.debug(f"File found: {file}")
+
+        answers = FileAnswer.objects.filter(chapter_file=file).select_related('student__studentprofile__group')
+
+        if group_id != 'all':
+            answers = answers.filter(student__studentprofile__group_id=group_id)
+
+        logger.debug(f"Found {answers.count()} answers")
+
+        answers_data = []
+        for answer in answers:
+            student = answer.student
+            profile = student.studentprofile
+            group = profile.group if profile else None
+
+            # Используем данные из профиля студента, если они есть
+            student_name = f"{profile.last_name} {profile.first_name}".strip() if profile else "Неизвестный студент"
+
+            answers_data.append({
+                'id': answer.id,
+                'student_profile_id': profile.id,  # Используем идентификатор профиля студента
+                'student_name': student_name,
+                'group_name': group.group_number if group else '-',
+                'file_url': answer.file.url,
+                'uploaded_at': answer.uploaded_at.isoformat(),
+                'grade': answer.grade,
+                'feedback': answer.feedback
+            })
+
+        logger.debug(f"Returning {len(answers_data)} answers")
+
         return JsonResponse({
             'status': 'success',
-            'file_name': file_name,
-            'short_name': (file_name[:15] + '...') if len(file_name) > 15 else file_name,
-            'answer_id': file_answer.id
+            'answers': answers_data,
+            'total_answers': answers.count()
         })
+
+    except ChapterFile.DoesNotExist:
+        logger.error("File not found or access denied")
+        return JsonResponse(
+            {'status': 'error', 'message': 'File not found or access denied'},
+            status=404
+        )
     except Exception as e:
+        logger.error(f"Error: {str(e)}")
         return JsonResponse(
             {'status': 'error', 'message': str(e)},
             status=500
         )
+
+
+
+
+    
+
+@require_POST
+@login_required
+@student_required
+def upload_answer(request):
+    logger.debug("Upload answer request received")
+
+    if request.method == 'POST':
+        file_id = request.POST.get('file_id')
+        answer_file = request.FILES.get('answer_file')
+
+        logger.debug(f"File ID: {file_id}, Answer file: {answer_file}")
+
+        if not file_id or not answer_file:
+            logger.error("File ID or answer file is missing")
+            return JsonResponse(
+                {'status': 'error', 'message': 'Необходимо указать файл и ID задания'},
+                status=400
+            )
+
+        try:
+            chapter_file = ChapterFile.objects.get(pk=file_id, provide_answer=True)
+            logger.debug(f"Chapter file found: {chapter_file}")
+        except ChapterFile.DoesNotExist:
+            logger.error("Chapter file not found or does not accept answers")
+            return JsonResponse(
+                {'status': 'error', 'message': 'Файл задания не найден или не принимает ответы'},
+                status=404
+            )
+
+        student_profile = request.user.studentprofile
+        if not chapter_file.chapter.student_groups.filter(id=student_profile.group.id).exists():
+            logger.error("Student does not have access to this assignment")
+            return JsonResponse(
+                {'status': 'error', 'message': 'У вас нет доступа к этому заданию'},
+                status=403
+            )
+
+        FileAnswer.objects.filter(chapter_file=chapter_file, student=request.user).delete()
+        logger.debug("Deleted previous answer if any")
+
+        try:
+            file_answer = FileAnswer.objects.create(
+                chapter_file=chapter_file,
+                student=request.user,
+                file=answer_file
+            )
+            logger.debug(f"File answer created: {file_answer}")
+
+            file_name = os.path.basename(file_answer.file.name)
+            short_name = (file_name[:15] + '...') if len(file_name) > 15 else file_name
+
+            logger.debug(f"Returning success response for file: {file_name}")
+
+            return JsonResponse({
+                'status': 'success',
+                'file_name': file_name,
+                'short_name': short_name,
+                'file_url': file_answer.file.url,
+                'answer_id': file_answer.id
+            })
+
+        except Exception as e:
+            logger.error(f"Error saving file: {str(e)}")
+            return JsonResponse(
+                {'status': 'error', 'message': f'Ошибка при сохранении файла: {str(e)}'},
+                status=500
+            )
+
+    logger.error("Invalid request method")
+    return JsonResponse(
+        {'status': 'error', 'message': 'Неверный метод запроса'},
+        status=405
+    )
+
 
 @login_required
 def delete_file(request, file_id):

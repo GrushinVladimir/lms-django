@@ -289,12 +289,12 @@ class FileAnswer(models.Model):
     chapter_file = models.ForeignKey(
         ChapterFile,
         on_delete=models.CASCADE,
-        related_name='answers'  # Используем related_name для доступа из ChapterFile
+        related_name='answers'
     )
     student = models.ForeignKey(
         CustomUser,
         on_delete=models.CASCADE,
-        default=1  # Укажите ID существующего пользователя
+        default=1
     )
     file = models.FileField(upload_to='student_answers/')
     uploaded_at = models.DateTimeField(auto_now_add=True)
@@ -304,6 +304,32 @@ class FileAnswer(models.Model):
         validators=[MinValueValidator(0), MaxValueValidator(10)]
     )
     feedback = models.TextField(blank=True)
-
+    graded_at = models.DateTimeField(null=True, blank=True)
+    graded_by = models.ForeignKey(
+        TeacherProfile, 
+        on_delete=models.SET_NULL, 
+        null=True, 
+        blank=True,
+        related_name='graded_answers'
+    )
+    is_new = models.BooleanField(default=True)  # Для отслеживания новых оценок
     class Meta:
         unique_together = ('chapter_file', 'student')
+
+    def get_upload_path(instance, filename):
+        """Генерирует путь для загрузки файла ответа"""
+        student = instance.student.studentprofile
+        chapter = instance.chapter_file.chapter
+        
+        # Получаем номер зачетной книги или используем 'unknown' если его нет
+        record_book = student.record_book_number or 'unknown'
+        
+        # Создаем безопасное имя папки главы (удаляем спецсимволы)
+        import re
+        chapter_name = re.sub(r'[^\w\s-]', '', chapter.name).strip().replace(' ', '_')
+        
+        # Формируем путь: student_answers/<record_book>/<chapter_name>/<filename>
+        return f'student_answers/{record_book}/{chapter_name}/{filename}'
+
+    # Обновляем поле file с новым upload_to
+    file = models.FileField(upload_to=get_upload_path)
