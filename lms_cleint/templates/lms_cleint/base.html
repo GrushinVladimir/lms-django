@@ -1,143 +1,90 @@
 <!DOCTYPE html>
+{% load static %}
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Система дистанционного обучения{% endblock %}</title>
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-    <!-- Bootstrap CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Select2 для красивого выбора элементов -->
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css" rel="stylesheet">
+    <title>{% block title %}Cистема управления обучением{% endblock %}</title>
     <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
-    <style>
-        html, body {
-height: 100%;
-        }
+      <link href="{% static 'css/base.css' %}" rel="stylesheet"> 
 
-        body {
-            display: flex;
-            flex-direction: column;
-            min-height: 100vh; /* Занимает минимум весь экран */
-        }
-
-        .content {
-            flex: 1; /* Растягивается, прижимая футер вниз */
-
-                    display: flex;  /* Добавлено */
-    flex-direction: column;  /* Добавлено */
-        }
-
-        footer {
-    background: #333;
-    color: white;
-    height: 8vh;
-    display: flex
-;
-    text-align: center;
-    opacity: .9;
-    align-items: center;
-    justify-content: space-evenly;
-        }
-        .navbar {
-            margin-bottom: 20px;
-        }
-
-        .teacher-info:hover {
-            cursor: help;
-        }
-        .toast {
-    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
-    transition: all 0.3s ease;
-    padding-right: 1rem;;
-}
-.toast-body{
-    padding:1rem;
-}
-.navy{
-    display: flex;
-    list-style: none;
-    justify-content: space-between;
-}
-.navy div{
-    display: flex;
-    list-style: none;
-    justify-content: space-between;
-}
-    </style>
-    
-    {% block extra_css %}{% endblock %}
+        <!-- Bootstrap CSS -->
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+        <!-- Select2 для красивого выбора элементов -->
+        <link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css" rel="stylesheet">
+        <!--Наследование CSS с шаблонов-->
+        {% block extra_css %}{% endblock %}
 </head>
 <body>
-    <div class="container-fluid h-100 content p-0 m-0">
-        <div class="col-md-12 m-auto ">
-    <!--Уведомления-->
-<div class="position-fixed top-0 p-3" style="z-index: 11; right: 0px; width: 400px;" >
-  <div class="toast-container">
-    {% for message in messages %}
-    <div class="toast align-items-center text-white bg-{% if message.tags %}{{ message.tags }}{% else %}info{% endif %} border-0" role="alert" aria-live="assertive" aria-atomic="true">
+    <div class="container-fluid content p-0 m-0">
+        <div class="col-md-10  h-100 m-auto " style="min-height: 92vh;padding-bottom:110px;">
+        <!--Уведомления-->
+            <div class="position-fixed top-0 p-3" style="z-index: 11; right: 0px; width: 400px;" >
+            <div class="toast-container">
+                {% for message in messages %}
+                <div class="toast align-items-center text-white bg-{% if message.tags %}{{ message.tags }}{% else %}info{% endif %} border-0" role="alert" aria-live="assertive" aria-atomic="true">
 
-    </div>
-    {% endfor %}
-  </div>
-</div>
+                </div>
+                {% endfor %}
+            </div>
+            </div>
         <!-- Навигационная панель -->
-                    <ul class="me-auto navy">
-                        {% if user.is_authenticated %}
-                            <li class="">
-                                <a class="" href="{% url 'teacher_dashboard' %}?test_id={{ test.id }}">Дашборд</a>
-                            </li>
-                            {% if user.is_teacher or user.is_superuser %}
-                                <li class="">
-                                    <a class="nav-link" href="{% url 'course_create' %}">Создать курс</a>
-                                </li>
-                            {% endif %}
-                        {% endif %}                    
-                        {% if user.is_authenticated %}
-                        <div>
-                            <li class="">
-                                <span class="">Вы вошли как: {{ user.username }}</span>
-                            </li>
-                            <li class="">
-                                <a class="" href="{% url 'logout' %}">Выйти</a>
-                            </li>
-                        </div>
-                        {% else %}
-
-                         {% endif %}
-                    </ul>
-             
-        <!-- Основное содержимое -->
-        <div class="row">
-            <div class="col-md-12">
-                {% if messages %}
-                    {% for message in messages %}
-                        <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
-                            {{ message }}
-                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                        </div>
-                    {% endfor %}
+            <ul class="me-auto navy">
+                {% if user.is_authenticated %}
+                    <li class="">
+                        <a class="" href="{% url 'teacher_dashboard' %}?test_id={{ test.id }}">Дашборд</a>
+                    </li>
+                    {% if user.is_teacher or user.is_superuser %}
+                        <li class="">
+                            <a class="nav-link" href="{% url 'course_create' %}">Создать курс</a>
+                        </li>
+                    {% endif %}
+                {% endif %}                    
+                {% if user.is_authenticated %}
+                <div>
+                    <li class="">
+                        <span class="">Вы вошли как: {{ user.username }}</span>
+                    </li>
+                    <li class="">
+                        <a class="" href="{% url 'logout' %}">Выйти</a>
+                    </li>
+                </div>
+                {% else %}
                 {% endif %}
-                
-                {% block content %}{% endblock %}
+            </ul>            
+            <!-- Основное содержимое -->
+            <div class="row">
+                <div class="col-md-12">
+                    <!--Уведомления 2-->
+                    {% if messages %}
+                        {% for message in messages %}
+                            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                    
+                    {% block content %}
+                    <!--Тут информация с шаблонов-->
+                    {% endblock %}
+                </div>
             </div>
         </div>
-    </div>
-</div>
-    <!-- Подвал -->
+            <!-- Подвал -->
     <footer>
-
-            <span class="">Система дистанционного обучения © {% now "Y" %}</span>
-
+        <span class="">Система дистанционного обучения © {% now "Y" %}</span>
     </footer>
+    </div>
 
+
+      <!--Наследование JS с шаблонов-->
+      {% block extra_js %}{% endblock %}
     <!-- Bootstrap JS и зависимости -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <!-- jQuery для Select2 -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <!-- Select2 JS -->
+    <!-- Select2 JS для реализации выборки по клику мыши -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js"></script>
-    
     <script>
         // Инициализация Select2 для всех элементов с классом select-multiple
         $(document).ready(function() {
@@ -150,14 +97,9 @@ height: 100%;
             // Добавляем title для элементов с информацией о преподавателе
             $('.teacher-info').each(function() {
                 const teacherId = $(this).data('teacher-id');
-                if (teacherId) {
-                    // Здесь можно добавить AJAX-запрос для получения полной информации,
-                    // или передать данные через data-атрибуты
-                }
+                if (teacherId) {}
             });
         });
     </script>
-    
-    {% block extra_js %}{% endblock %}
 </body>
 </html>

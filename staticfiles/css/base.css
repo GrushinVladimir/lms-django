@@ -1,0 +1,59 @@
+html, body 
+{
+    height: 100%;
+}
+ body 
+ {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh; /* Занимает минимум весь экран */
+}
+
+.content 
+{
+    flex-direction: column;  /* Добавлено */
+}
+
+footer 
+{
+    background: #333;
+    color: white;
+    height: 8vh;
+    display: flex;
+    text-align: center;
+    opacity: .9;
+    align-items: center;
+    justify-content: space-evenly;
+}
+.navbar 
+{
+     margin-bottom: 20px;
+}
+.teacher-info:hover 
+{
+    cursor: help;
+}
+.toast 
+{
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+    transition: all 0.3s ease;
+    padding-right: 1rem;;
+}
+.toast-body
+{
+    padding:1rem;
+}
+.navy
+{
+    position: relative;
+    z-index: 9999;
+    display: flex;
+    list-style: none;
+    justify-content: space-between;
+}
+.navy div
+{
+    display: flex;
+    list-style: none;
+    justify-content: space-between;
+}
