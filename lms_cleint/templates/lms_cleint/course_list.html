@@ -1,6 +1,9 @@
 {% extends 'lms_cleint/base.html' %}
+{% load static %}
 {% block content %}
-<h2>Список курсов</h2>
+<div class="pod-header">
+    <h4>Курсы</h4>
+</div>
 <table class="table">
     <thead>
         <tr>
@@ -29,10 +32,10 @@
             </td>
            
             <td>
-                <a href="{% url 'subject_list' course.id %}" class="btn btn-sm btn-info">Перейти</a>
                
-                <a href="{% url 'course_edit' course.id %}" class="btn btn-sm btn-primary">Редактировать</a>
-                <a href="{% url 'course_delete' course.id %}" class="btn btn-sm btn-danger">Удалить</a>
+                <a href="{% url 'course_edit' course.id %}" class="list-button"><img class="img-birch" src="{% static 'images/remove.png' %}" alt="Редактировать" title="Редактировать"></a>
+
+                <a href="{% url 'course_delete' course.id %}"  class="list-button-2"><img class="img-birch-2" src="{% static 'images/deletetwo.png' %}"  alt="Удалить" title="Удалить"></a>
                
             </td>
              {% endif %}
@@ -45,6 +48,6 @@
     </tbody>
 </table>
 {% if user.is_teacher or user.teacherprofile %}
-<a href="{% url 'course_create' %}" class="btn btn-success">Создать новый курс</a>
+<a href="{% url 'course_create' %}" class="submit-button">Создать новый курс</a>
 {% endif %}
 {% endblock %}
