@@ -1,53 +1,196 @@
 {% extends 'lms_cleint/base.html' %}
 {% load static %}
 {% block content %}
-<div class="pod-header">
-    <h4>Курсы</h4>
-</div>
-<table class="table">
-    <thead>
-        <tr>
-            <th>Название</th>
-            <th>Преподаватели</th>
-             {% if user.is_teacher or user.teacherprofile %}
-            <th>Группы</th>
-           <th>Действия</th> 
-           {% endif %}
-        </tr>
-    </thead>
-    <tbody>
-        {% for course in courses %}
-        <tr>
-            <td><a href="{% url 'subject_list' course.id %}">{{ course.name }}</a></td>
-            <td>
-                {% for teacher in course.teachers.all %}
-                <a href="{% url 'teacher_profile' teacher.id %}">{{ teacher.last_name }} {{ teacher.first_name|slice:":1" }}.</a>{% if not forloop.last %}, {% endif %}
-                {% endfor %}
-            </td>
-              {% if user.is_teacher or user.teacherprofile %}
-            <td>
-                {% for group in course.student_groups.all %}
-                <a href="{% url 'group_list' group.id %}">{{ group.group_number }}</a>{% if not forloop.last %}, {% endif %}
-                {% endfor %}
-            </td>
-           
-            <td>
-               
-                <a href="{% url 'course_edit' course.id %}" class="list-button"><img class="img-birch" src="{% static 'images/remove.png' %}" alt="Редактировать" title="Редактировать"></a>
 
-                <a href="{% url 'course_delete' course.id %}"  class="list-button-2"><img class="img-birch-2" src="{% static 'images/deletetwo.png' %}"  alt="Удалить" title="Удалить"></a>
-               
-            </td>
-             {% endif %}
-        </tr>
-        {% empty %}
-        <tr>
-            <td colspan="4">Курсы пока не созданы</td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
+
+
+
+<div class="pod-header">
+    <h4>Избранное</h4>
+</div>
+<div class="row" >
+<div class="col-xl-4 " style="padding-bottom: 20px;">
+<div class="card-item-mini-two">
+    <div class="row w-100">   
+        <div class="col-sm-4 block-img">            
+            <img class="img-card" src="{% static 'images/ico-card.png' %}" alt="Редактировать" title="Редактировать">
+        </div>
+        <div class="col-sm-8">
+            <div class="title">
+                <a href=""><p>График выполнения</p></a>
+            </div>
+                <span class="arrow-card" ><a href="№">&rarr;</a></span>
+        </div>
+    </div>
+    </div>
+</div>
+
+
+</div>
+<div class="pod-header">
+    <h4>Моё</h4>
+</div>
+<div class="row" >
+<div class="col-xl-4 " style="padding-bottom: 20px;">
+<div class="card-item-mini">
+    <div class="row w-100">   
+        <div class="col-sm-4 block-img">            
+            <img class="img-card" src="{% static 'images/ico-card.png' %}" alt="Редактировать" title="Редактировать">
+        </div>
+        <div class="col-sm-8">
+            <div class="title">
+                <a href=""><p>График выполнения</p></a>
+            </div>
+                <span class="arrow-card" ><a href="№">&rarr;</a></span>
+        </div>
+    </div>
+    </div>
+</div>
+<div class="col-xl-4 " style="padding-bottom: 20px;">
+<div class="card-item-mini">
+    <div class="row w-100">   
+        <div class="col-sm-4 block-img">            
+            <img class="img-card" src="{% static 'images/ico-card.png' %}" alt="Редактировать" title="Редактировать">
+        </div>
+        <div class="col-sm-8">
+            <div class="title">
+                <a href=""><p>История выполнения</p></a>
+            </div>
+                <span class="arrow-card" ><a href="№">&rarr;</a></span>
+        </div>
+    </div>
+    </div>
+</div>
+<div class="col-xl-4 " style="padding-bottom: 20px;">
+<div class="card-item-mini">
+    <div class="row w-100">   
+        <div class="col-sm-4 block-img">            
+            <img class="img-card" src="{% static 'images/ico-card.png' %}" alt="Редактировать" title="Редактировать">
+        </div>
+        <div class="col-sm-8">
+            <div class="title">
+                <a href=""><p>Преподаватели</p></a>
+            </div>
+                <span class="arrow-card" ><a href="№">&rarr;</a></span>
+        </div>
+    </div>
+    </div>
+</div>
+</div>
+<div class="pod-header">
+    <h4>Учебные дисциплины</h4>
+</div>
+<div class="col-xl-12" style="margin-bottom: 2rem;">
+<div class="row" >
+{% for course in courses %}
+<div class="col-xl-4 " style="padding-bottom: 20px;">
+<div class="card-item">
+    <div class="row w-100">
+      
+        <div class="col-sm-4 block-img">
+            
+            <img class="img-card" src="{% static 'images/ico-card.png' %}" alt="Редактировать" title="Редактировать">
+        </div>
+        <div class="col-sm-8">
+            <div class="box-button-mini">
+                <a class="info-card" data-bs-toggle="modal" data-bs-target="#groupsModal{{ course.id }}">Группы</a>
+                <a class="info-card" data-bs-toggle="modal" data-bs-target="#teachersModal{{ course.id }}">Преподаватели</a>
+            </div>
+            <div class="title">
+                <a href="{% url 'subject_list' course.id %}"><p>{{ course.name }} </p></a>
+            </div>
+             {% if user.is_teacher or user.teacherprofile %}
+            <div class="box-button">
+                <a class="" href="{% url 'course_edit' course.id %}">Редактировать</a>
+                <a class="" href="{% url 'course_delete' course.id %}" >Удалить</a>
+            </div>
+            {% endif %}
+                <span class="arrow-card" ><a href="{% url 'subject_list' course.id %}">&rarr;</a></span>
+        </div>
+
+    </div>
+    </div>
+</div>
+
+<!-- Модальное окно групп для курса {{ course.id }} -->
+<div class="modal fade" id="groupsModal{{ course.id }}" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Группы курса "{{ course.name }}"</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <ul class="list-group">
+                    {% for group in course.student_groups.all %}
+                    <li class="list-group-item">
+                        <a href="{% url 'group_list' group.id %}">{{ group.group_number }}</a>
+                    </li>
+                    {% empty %}
+                    <li class="list-group-item">Нет групп</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Закрыть</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Модальное окно преподавателей для курса {{ course.id }} -->
+<div class="modal fade" id="teachersModal{{ course.id }}" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Преподаватели курса "{{ course.name }}"</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <ul class="list-group">
+                    {% for teacher in course.teachers.all %}
+                    <li class="list-group-item">
+                        <a href="{% url 'teacher_profile' teacher.id %}">
+                            {{ teacher.last_name }} {{ teacher.first_name }} {{ teacher.middle_name|default_if_none:"" }}
+                        </a>
+                    </li>
+                    {% empty %}
+                    <li class="list-group-item">Нет преподавателей</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" data-bs-dismiss="modal">Закрыть</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endfor %}
+</div>
+</div>
+
+
 {% if user.is_teacher or user.teacherprofile %}
 <a href="{% url 'course_create' %}" class="submit-button">Создать новый курс</a>
 {% endif %}
+
 {% endblock %}
+
+
+<!-- Модальное группы -->
+<div class="modal fade" id="group" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Ваша оценка</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body grade-modal-content" id="gradeModalContent">
+                <!-- Содержимое будет загружено динамически -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" data-bs-dismiss="modal">ОК</button>
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 {% load static %}
+
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
@@ -7,17 +8,24 @@
     <title>{% block title %}Cистема управления обучением{% endblock %}</title>
     <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>
       <link href="{% static 'css/base.css' %}" rel="stylesheet"> 
-
+        <!--Наследование CSS с шаблонов-->
+        {% block extra_css %}{% endblock %}
         <!-- Bootstrap CSS -->
         <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
         <!-- Select2 для красивого выбора элементов -->
         <link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css" rel="stylesheet">
-        <!--Наследование CSS с шаблонов-->
-        {% block extra_css %}{% endblock %}
+
 </head>
-<body>
+    <!--Прелодер в виде белого фона-->
+    <div class="preloader">
+        <div class="loader"></div>
+    </div>
+<div class="background-block"></div>
+<body style="background: none;">
+    
     <div class="container-fluid content p-0 m-0">
-        <div class="col-md-10  h-100 m-auto " style="min-height: 92vh;padding-bottom:110px;">
+       
+        <div class="col-md-10  h-100 m-auto block-mobile" style="min-height: 92vh;padding-bottom:110px;">
         <!--Уведомления-->
             <div class="position-fixed top-0 p-3" style="z-index: 11; right: 0px; width: 400px;" >
             <div class="toast-container">
@@ -29,7 +37,7 @@
             </div>
             </div>
         <!-- Навигационная панель -->
-            <ul class="me-auto navy">
+            <ul class="me-auto navy col-md-10">
                 {% if user.is_authenticated %}
                     <li class="">
                         <a class="" href="{% url 'teacher_dashboard' %}?test_id={{ test.id }}">Дашборд</a>
@@ -41,14 +49,29 @@
                     {% endif %}
                 {% endif %}                    
                 {% if user.is_authenticated %}
-                <div>
-                    <li class="">
-                        <span class="">Вы вошли как: {{ user.username }}</span>
-                    </li>
-                    <li class="">
-                        <a class="" href="{% url 'logout' %}">Выйти</a>
-                    </li>
-                </div>
+                    <div>
+                        <div class="user-dropdown">
+                        {% if user.is_authenticated and user.studentprofile %}
+                            {% with student=user.studentprofile %}
+                                <button class="dropdown-toggle" type="button" id="userMenu">
+                                    <div class="avca-mini">
+                                        {% if student.avatar %}
+                                            <img src="{{ student.avatar.url }}" alt="Avatar" class="avatar-img">
+                                        {% else %}
+                                            <div class="avatar-pla">
+                                                {{ student.last_name|first }}{{ student.first_name|first }}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </button>
+                                <div class="dropdown-menu">
+                                    <a class="dropdown-item" href="{% url 'student_profile' student.id %}">Профиль</a>
+                                    <a class="dropdown-item" href="{% url 'logout' %}">Выйти</a>
+                                </div>
+                            {% endwith %}
+                        {% endif %}
+                        </div>
+                    </div>
                 {% else %}
                 {% endif %}
             </ul>            
@@ -85,21 +108,6 @@
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <!-- Select2 JS для реализации выборки по клику мыши -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js"></script>
-    <script>
-        // Инициализация Select2 для всех элементов с классом select-multiple
-        $(document).ready(function() {
-            $('.select-multiple').select2({
-                placeholder: "Выберите варианты",
-                allowClear: true,
-                width: '100%'
-            });
-            
-            // Добавляем title для элементов с информацией о преподавателе
-            $('.teacher-info').each(function() {
-                const teacherId = $(this).data('teacher-id');
-                if (teacherId) {}
-            });
-        });
-    </script>
+    <script src="{% static 'js/base.js' %}"></script> 
 </body>
 </html>

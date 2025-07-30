@@ -62,6 +62,7 @@ class StudentProfile(models.Model):
             initials = f"{self.last_name[0]}{self.first_name[0]}"
             return initials.upper()
         return "NN"
+    
 
 @receiver(post_save, sender=CustomUser)
 def create_user_profile(sender, instance, created, **kwargs):

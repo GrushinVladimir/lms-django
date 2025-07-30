@@ -68,8 +68,16 @@ function imagesLoaded() {
         });
 //Функция для смены иконки показать пароль
 function togglePasswordVisibility(button) {
-    const passwordField = document.getElementById('{{ form.password.id_for_label }}');
+    // Находим ближайший контейнер с паролем
+    const container = button.closest('.password-input-container');
+    // Находим поле ввода внутри контейнера
+    const passwordField = container.querySelector('input');
     const eyeIcon = button.querySelector('.eye-icon');
+    
+    if (!passwordField) {
+        console.error('Password field not found');
+        return;
+    }
     
     if (passwordField.type === 'password') {
         passwordField.type = 'text';

@@ -1,14 +1,51 @@
 html, body 
 {
-    height: 100%;
+   background:#efefef;
+   height: 100%;
+
+}
+.background-block {
+  width: 100%;
+  height: 100vh;
+  background-image: url('../images/fonts-image.png');
+  background-size: cover; 
+  background-position: center; 
+  background-repeat: no-repeat; 
+  position: fixed;
+  overflow: hidden;
+  z-index: -1;
+}
+
+
+@media (max-width: 768px) {
+  .background-block {
+    background-size: cover; 
+    background-position: top center;
+  }
 }
  body 
  {    
-    min-height: 92vh; /* Занимает минимум весь экран */
+    background: none;
+    min-height: 92vh;
 }
 .content 
 {
-    flex-direction: column;  /* Добавлено */
+    flex-direction: column; 
+}
+.card-item-profile
+  {
+    display: flex;
+    background: rgb(120 131 197 / 25%);
+    border-radius: 14px;
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1), inset 0 0 0 1px rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    transition: all 0.4s ease;
+    z-index: 1;
+    padding: 1rem;
+    flex-direction: column;
+    align-content: flex-start;
 }
 
 
@@ -46,14 +83,17 @@ footer
 }
 .navy
 {
+      overflow: visible !important; /* Переопределяет любой скрытый overflow */
+
     position: relative;
-    z-index: 9999;
+    z-index: 1;
     display: flex;
     list-style: none;
     justify-content: space-between;
 }
-.navy div
+.navy > div
 {
+    padding-right: 25px;
     display: flex;
     list-style: none;
     justify-content: space-between;
@@ -98,10 +138,674 @@ footer
 {
     background: #639388;
 }
+.navy{
+    margin-bottom: 3rem;
+    background: inherit;
+    box-shadow: 0 0 1rem 0 rgba(0, 0, 0, .2);
+    overflow: hidden;
+    padding-bottom: 2rem;
+    padding-top: 2rem;
+    border-radius: 23px;
+    top: 1rem;
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1), inset 0 0 0 1px rgba(255, 255, 255, 0.2);
+    margin-left:auto;
+    margin-right: auto;
+}
+.navy:before {
+	content: "";
+	position: absolute;
+	background: inherit;
+	z-index: -1;
+	top: 0;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	box-shadow: inset 0 0 2000px rgba(255, 255, 255, .5);
+	filter: blur(10px);
+	margin: -20px;
+}
 .pod-header{
-    background: #76bdad6b;
-    padding: 2rem;
-    border-radius: 30px;
-    margin-bottom: 1.5rem;;
-    color: #959090;
+  padding-bottom: 1rem;
+}
+@media (min-width:700px){
+
+.card-item-mini-two
+  {
+        justify-content: center;
+        position: relative;
+        display: flex;
+        align-items: center;
+        background: rgb(120 131 197 / 25%);
+        border-radius: 14px;
+        border: 1px solid rgba(255, 255, 255, 0.4);
+        box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1), inset 0 0 0 1px rgba(255, 255, 255, 0.2);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        overflow: hidden;
+        transition: all 0.4s ease;
+        z-index: 1;
+        padding: 1rem;
+        height: 140px;
+  }
+  .card-item-mini {
+
+    justify-content: center;
+    position: relative;
+    display: flex;
+    align-items: center;
+    background: rgb(92 151 199 / 25%);
+    border-radius: 14px;
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    box-shadow: 
+      0 4px 30px rgba(0, 0, 0, 0.1),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    overflow: hidden;
+    transition: all 0.4s ease;
+    z-index: 1;
+    padding: 1rem;
+    height:140px;
+  }
+  .card-item {
+
+    justify-content: center;
+    position: relative;
+    display: flex;
+    align-items: center;
+    background: rgb(74 140 143 / 25%);
+    border-radius: 14px;
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    box-shadow: 
+      0 4px 30px rgba(0, 0, 0, 0.1),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    overflow: hidden;
+    transition: all 0.4s ease;
+    z-index: 1;
+    padding: 1rem;
+    height:240px;
+  }
+
+  /* Эффект "плавающего стекла" при наведении */
+  .card-item:hover {
+    transform: translateY(-5px);
+    box-shadow: 
+      0 8px 32px rgba(0, 0, 0, 0.2),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.3);
+  }
+    .card-item-mini:hover {
+    transform: translateY(-5px);
+    box-shadow: 
+      0 8px 32px rgba(0, 0, 0, 0.2),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.3);
+  }
+      .card-item-mini-two:hover {
+    transform: translateY(-5px);
+    box-shadow: 
+      0 8px 32px rgba(0, 0, 0, 0.2),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.3);
+  }
+  .card-item:hover .content {
+    transform: translateY(-2px);
+  }
+    .card-item-mini:hover .content {
+    transform: translateY(-2px);
+  }
+      .card-item-mini-two:hover .content {
+    transform: translateY(-2px);
+  }
+.card-item:hover  .img-card{
+    opacity: .6;
+    transform: scale(1.135);
+}
+.card-item-mini:hover  .img-card{
+    opacity: .6;
+    transform: scale(1.135);
+}
+.card-item-mini-two:hover  .img-card{
+    opacity: .6;
+    transform: scale(1.135);
+}
+.card-item:hover .arrow-card{
+    opacity: 1;
+    position: absolute;
+    right: 15px;
+    bottom: 18px;
+    font-size: 2rem;
+    background: #504424;
+    width: 50px;
+    height: 50px;
+    text-align: center;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    padding-bottom: 5px;
+    justify-content: space-evenly;
+}
+
+.card-item-mini:hover .arrow-card{
+    opacity: 1;
+    position: absolute;
+    right: 15px;
+    bottom: 18px;
+    font-size: 2rem;
+    background: #504424;
+    width: 50px;
+    height: 50px;
+    text-align: center;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    padding-bottom: 5px;
+    justify-content: space-evenly;
+}
+.card-item-mini-two:hover .arrow-card{
+    opacity: 1;
+    position: absolute;
+    right: 15px;
+    bottom: 18px;
+    font-size: 2rem;
+    background: #504424;
+    width: 50px;
+    height: 50px;
+    text-align: center;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    padding-bottom: 5px;
+    justify-content: space-evenly;
+}
+  .content {
+    transition: transform 0.2s cubic-bezier(0.25, 0.1, 0.25, 1);
+  }
+  /* Эффект внутреннего свечения как в iOS */
+  .card-item::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    border-radius: 14px;
+    background: linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.4) 0%,
+      rgba(255, 255, 255, 0.1) 50%,
+      rgba(255, 255, 255, 0) 100%
+    );
+    pointer-events: none;
+    z-index: -1;
+  }
+.block-img{
+    
+    display: flex;
+    align-items: center;
+    justify-content: space-evenly;
+
+}
+  .card-item-mini-two .img-card{
+    filter:hue-rotate(45deg);
+    transition: all 0.4s ease;
+    width: 74px;
+    height: 74px;
+    opacity: .2;
+}
+}
+@media (max-width:700px){
+  .card-item-mini-two
+  {
+        justify-content: center;
+        position: relative;
+        display: flex;
+        align-items: center;
+        background: rgb(120 131 197 / 25%);
+        border-radius: 14px;
+        border: 1px solid rgba(255, 255, 255, 0.4);
+        box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1), inset 0 0 0 1px rgba(255, 255, 255, 0.2);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        overflow: hidden;
+        transition: all 0.4s ease;
+        z-index: 1;
+        padding: 1rem;
+        height: 140px;
+  }
+    .card-item-mini {
+
+    justify-content: center;
+    position: relative;
+    display: flex;
+    align-items: center;
+    background: rgb(92 151 199 / 25%);
+    border-radius: 14px;
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    box-shadow: 
+      0 4px 30px rgba(0, 0, 0, 0.1),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    overflow: hidden;
+    transition: all 0.4s ease;
+    z-index: 1;
+    padding: 1rem;
+    height:140px;
+  }
+   .card-item{
+    justify-content: center;
+    position: relative;
+    display: flex;
+    align-items: center;
+    background: rgba(118, 189, 173, 0.25); /* Ваш цвет с прозрачностью */
+    border-radius: 14px;
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    box-shadow: 
+      0 4px 30px rgba(0, 0, 0, 0.1),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    overflow: hidden;
+    transition: all 0.4s ease;
+    z-index: 1;
+    padding: 1rem;
+    height:224px;
+    
+} 
+  /* Эффект "плавающего стекла" при наведении */
+  .card-item:hover {
+    transform: translateY(-5px);
+    box-shadow: 
+      0 8px 32px rgba(0, 0, 0, 0.2),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.3);
+  }
+    .card-item-mini:hover {
+    transform: translateY(-5px);
+    box-shadow: 
+      0 8px 32px rgba(0, 0, 0, 0.2),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.3);
+  }
+      .card-item-mini-two:hover {
+    transform: translateY(-5px);
+    box-shadow: 
+      0 8px 32px rgba(0, 0, 0, 0.2),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.3);
+  }
+  .card-item:hover .content {
+    transform: translateY(-2px);
+  }
+    .card-item-mini:hover .content {
+    transform: translateY(-2px);
+  }
+      .card-item-mini-two:hover .content {
+    transform: translateY(-2px);
+  }
+.card-item:hover  .img-card{
+    opacity: .6;
+    transform: scale(1.135);
+}
+.card-item-mini:hover  .img-card{
+    opacity: .6;
+    transform: scale(1.135);
+}
+.card-item-mini-two:hover  .img-card{
+    opacity: .6;
+    transform: scale(1.135);
+}
+.card-item:hover .arrow-card{
+    opacity: 1;
+    position: absolute;
+    right: 15px;
+    bottom: 18px;
+    font-size: 2rem;
+    background: #504424;
+    width: 50px;
+    height: 50px;
+    text-align: center;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    padding-bottom: 5px;
+    justify-content: space-evenly;
+}
+.card-item-mini:hover .arrow-card{
+    opacity: 1;
+    position: absolute;
+    right: 15px;
+    bottom: 18px;
+    font-size: 2rem;
+    background: #504424;
+    width: 50px;
+    height: 50px;
+    text-align: center;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    padding-bottom: 5px;
+    justify-content: space-evenly;
+}
+.card-item-mini-two:hover .arrow-card{
+    opacity: 1;
+    position: absolute;
+    right: 15px;
+    bottom: 18px;
+    font-size: 2rem;
+    background: #504424;
+    width: 50px;
+    height: 50px;
+    text-align: center;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    padding-bottom: 5px;
+    justify-content: space-evenly;
+}
+  .content {
+    transition: transform 0.2s cubic-bezier(0.25, 0.1, 0.25, 1);
+  }
+  /* Эффект внутреннего свечения как в iOS */
+  .card-item::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    border-radius: 14px;
+    background: linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.4) 0%,
+      rgba(255, 255, 255, 0.1) 50%,
+      rgba(255, 255, 255, 0) 100%
+    );
+    pointer-events: none;
+    z-index: -1;
+  }
+.block-img{
+    display: none;
+
+}
+.block-mobile{
+padding-left: 10px;
+padding-right: 10px;;
+}
+}
+
+.card-item .img-card{
+    filter: brightness(0.5);
+    transition: all 0.4s ease;
+    width: 74px;
+    height: 74px;
+    opacity: .2;
+}
+.card-item-mini .img-card{
+    filter: saturate(0.5);
+    transition: all 0.4s ease;
+    width: 74px;
+    height: 74px;
+    opacity: .2;
+}
+.card-item-mini-two .img-card{
+    filter:hue-rotate(45deg);
+    transition: all 0.4s ease;
+    width: 74px;
+    height: 74px;
+    opacity: .2;
+}
+.box-button 
+{
+    height: 30px;
+}
+.box-button a{
+    
+    transition: .2s;
+    background: #609b88;
+    padding: .5rem;
+    color: #fff;
+    border-radius: 10px;
+    text-decoration: none;
+    line-height: 2rem;
+}
+.box-button a:hover{
+    background: #58755c;
+    
+}
+.box-button-mini
+{
+        cursor: pointer;
+        text-align: right;
+        margin-bottom: 1rem;
+}
+.box-button-mini a{
+    font-weight: 500;
+    transition: .2s;
+    background: none;
+    border:2px solid #609b88;
+    padding: .3rem;
+    color: #609b88;
+    border-radius: 10px;
+    text-decoration: none;
+    line-height: 1rem;
+    font-size: .7rem;
+ 
+}
+.box-button-mini a:hover{
+    background: #58755c;
+    color:#fff;
+}
+.arrow-card{
+    opacity: .3;
+    position: absolute;
+    right: 30px;
+    bottom: 30px;
+    font-size: .8rem;
+    background: #504424;
+    width: 20px;
+    height: 20px;
+    text-align: center;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    padding-bottom: 2px;
+    justify-content: space-evenly;
+    transition: all 0.2s ease;
+    color:#e4f5f2;
+    cursor: pointer;
+}
+.arrow-card a{
+    list-style: none;
+    color:#e4f5f2;
+    text-decoration: none;
+}
+.card-item .title p{
+    min-height: 97px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    text-transform: uppercase;
+    font-weight: 500;
+}
+.card-item-mini .title p{
+    min-height: 97px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    font-weight: 600;
+    font-size: 1.1rem;
+    margin: 0;
+}
+.title a{
+    text-decoration: none;
+    color: #000;
+}
+
+.preloader 
+{
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: white;
+    z-index: 9999;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+    visibility: visible;
+}
+.preloader.hidden {
+    opacity: 0;
+    visibility: hidden;
+}
+.avca{
+  padding: 2rem;
+    background: #7cc3db;
+    display: flex;
+    width: 100px;
+    height: 100px;
+    align-items: center;
+    justify-content: space-evenly;
+    text-transform: uppercase;
+    font-weight: 600;
+    font-size: 1.5rem;
+    border-radius: 60%;
+    border: 2px solid #ffffff;
+}
+.avca-mini{
+    padding: 11px;
+    background: #7cc3db;
+    display: flex;
+    width:45px;
+    height: 45px;
+    align-items: center;
+    justify-content: center;
+    text-transform: uppercase;
+    font-weight: 600;
+    font-size: 1rem;
+    border-radius: 60%;
+    border: 2px solid #ffffff;
+
+}
+.dropdown-toggle {
+    display: flex;
+    align-items: center;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 5px;
+}
+
+.avatar-img {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.avatar-placeholder {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: #ccc;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+}
+
+.dropdown {
+    position: relative;
+    display: inline-block;
+}
+
+.avca-mini {
+    padding: 11px;
+    background: #7cc3db;
+    display: flex;
+    width: 45px;
+    height: 45px;
+    align-items: center;
+    justify-content: center;
+    text-transform: uppercase;
+    font-weight: 600;
+    font-size: 1rem;
+    border-radius: 60%;
+    border: 2px solid #ffffff;
+}
+
+.user-dropdown {
+    position: relative;
+    display: inline-block;
+}
+
+.dropdown-toggle {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 5px;
+    color: #333;
+}
+
+.avca-mini {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: #7cc3db;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid #fff;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.avatar-img {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.dropdown-arrow {
+    font-size: 12px;
+    transition: transform 0.2s;
+}
+
+.dropdown-menu {
+    position: absolute;
+    right: 0;
+    top: 100%;
+    margin-top: 5px;
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    min-width: 160px;
+    z-index: 1000;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(10px);
+    transition: all 0.3s ease;
+}
+
+.dropdown-menu.show {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+.dropdown-item {
+    display: block;
+    padding: 8px 16px;
+    color: #333;
+    text-decoration: none;
+    transition: background 0.2s;
+}
+
+.dropdown-item:hover {
+    background: #f5f5f5;
 }

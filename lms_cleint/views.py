@@ -1708,9 +1708,12 @@ def login_view(request):
     else:
         form = AuthenticationForm()
     return render(request, 'lms_cleint/login.html', {'form': form})
-
 @login_required
-def course_list(request):
+def student_profile(request, student_id):
+    student = get_object_or_404(StudentProfile, pk=student_id)
+    return render(request, 'lms_cleint/student_profile.html', {'student': student})
+@login_required
+def course_list(request, ):
     courses = Course.objects.all()
     return render(request, 'lms_cleint/course_list.html', {'courses': courses})
 
