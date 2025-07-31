@@ -7,6 +7,7 @@ html, body
 .background-block {
   width: 100%;
   height: 100vh;
+  filter: contrast(0.5);
   background-image: url('../images/fonts-image.png');
   background-size: cover; 
   background-position: center; 
@@ -96,6 +97,7 @@ footer
     padding-right: 25px;
     display: flex;
     list-style: none;
+    align-items: center;
     justify-content: space-between;
 }
 
@@ -193,7 +195,7 @@ footer
     position: relative;
     display: flex;
     align-items: center;
-    background: rgb(92 151 199 / 25%);
+    background: rgb(80 141 127 / 37%);
     border-radius: 14px;
     border: 1px solid rgba(255, 255, 255, 0.4);
     box-shadow: 
@@ -230,19 +232,19 @@ footer
 
   /* Эффект "плавающего стекла" при наведении */
   .card-item:hover {
-    transform: translateY(-5px);
+    transform: translateY(-2px);
     box-shadow: 
       0 8px 32px rgba(0, 0, 0, 0.2),
       inset 0 0 0 1px rgba(255, 255, 255, 0.3);
   }
     .card-item-mini:hover {
-    transform: translateY(-5px);
+    transform: translateY(-2px);
     box-shadow: 
       0 8px 32px rgba(0, 0, 0, 0.2),
       inset 0 0 0 1px rgba(255, 255, 255, 0.3);
   }
       .card-item-mini-two:hover {
-    transform: translateY(-5px);
+    transform: translateY(-2px);
     box-shadow: 
       0 8px 32px rgba(0, 0, 0, 0.2),
       inset 0 0 0 1px rgba(255, 255, 255, 0.3);
@@ -281,7 +283,7 @@ footer
     border-radius: 50%;
     display: flex;
     align-items: center;
-    padding-bottom: 5px;
+    padding-bottom: 7px;
     justify-content: space-evenly;
 }
 
@@ -378,7 +380,7 @@ footer
     position: relative;
     display: flex;
     align-items: center;
-    background: rgb(92 151 199 / 25%);
+    background: rgb(80 141 127 / 37%);
     border-radius: 14px;
     border: 1px solid rgba(255, 255, 255, 0.4);
     box-shadow: 
@@ -539,7 +541,7 @@ padding-right: 10px;;
     opacity: .2;
 }
 .card-item-mini .img-card{
-    filter: saturate(0.5);
+    filter: grayscale(1);
     transition: all 0.4s ease;
     width: 74px;
     height: 74px;
@@ -754,7 +756,7 @@ padding-right: 10px;;
     width: 40px;
     height: 40px;
     border-radius: 50%;
-    background: #7cc3db;
+    background: #76bdad;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -809,3 +811,85 @@ padding-right: 10px;;
 .dropdown-item:hover {
     background: #f5f5f5;
 }
+.uv-tick{
+    background: #76bdad;
+    padding: 6px;
+    width: 40px;
+    height: 40px;
+    border: 2px solid #fff;
+    border-radius: 50%;
+    
+}
+.uv-sms{
+    background: #76bdad;
+    padding: 5px;
+    width: 40px;
+    height: 40px;
+    border: 2px solid #fff;
+    border-radius: 50%;
+}
+@media (min-width:700px){
+.box-uv{
+    position: absolute;
+    right: 7rem;
+    top: 62px;
+    display: flex;
+}
+}
+@media (max-width:700px){
+.box-uv{
+    position: absolute;
+    right: 7rem;
+    top: 54px;
+    display: flex;
+    z-index: 4;
+}
+}
+.box-uv div{
+  position: relative;
+}
+.schet{
+    position: absolute;
+    right: -6px;
+    font-size: 0.8rem;
+    top: -10px;
+    background: #ef9de1;
+    min-width: 19px;
+    min-height: 18px;
+    display: flex;
+    align-items: center;
+    border-radius: 30px;
+    padding-left: 5px;
+    padding-right: 5px;
+    padding-bottom: 2px;
+    padding-top: 2px;
+    justify-content: center;
+    transition: transform 0.2s;
+}
+.uv-tick:hover,.uv-sms:hover,.avca-mini:hover
+{
+  background:#599184;
+}
+
+/* При наведении на .uv-sms меняем .schet (если они в одном div) */
+div:hover > .schet {
+    transform: translateY(-1px);
+}
+.name{
+    font-weight: 400;
+    font-size: 1.5rem;
+    padding-left: 1rem;
+    color: #000000a8;
+    text-shadow: 0px 0px 1px rgb(118 189 173 / 45%);
+}
+.name span{
+  font-size: .8rem;
+    text-transform: uppercase;
+}
+
+@media (max-width:700px){
+  .name,.logo{
+  display: none;
+}
+}
+  

@@ -38,20 +38,32 @@
             </div>
         <!-- Навигационная панель -->
             <ul class="me-auto navy col-md-10">
-                {% if user.is_authenticated %}
-                    <li class="">
-                        <a class="" href="{% url 'teacher_dashboard' %}?test_id={{ test.id }}">Дашборд</a>
-                    </li>
-                    {% if user.is_teacher or user.is_superuser %}
-                        <li class="">
-                            <a class="nav-link" href="{% url 'course_create' %}">Создать курс</a>
-                        </li>
-                    {% endif %}
-                {% endif %}                    
+                <div>
+                            <!--Логотип проекта-->
+                            <svg class="logo"width="60" height="60" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+                                <circle cx="165" cy="80" r="22" fill="#5a9c8f" opacity="0.9"/>
+                                <circle cx="147" cy="50" r="22" fill="#5a9c8f" opacity="0.9"/>
+                                <circle cx="117" cy="34" r="22" fill="#5a9c8f" opacity="0.9"/>
+                                <circle cx="90" cy="110" r="90" fill="#76bdad" filter="url(#shadow)"/>
+                                <defs>
+                                    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+                                        <feDropShadow dx="3" dy="3" stdDeviation="5" flood-opacity="0.2"/>
+                                    </filter>
+                                </defs>
+                                <path d="M100 40a60 60 0 1 1 0 120 60 60 0 0 1 0-120zm0 20a40 40 0 1 0 0 80 40 40 0 0 0 0-80z" 
+                                    fill="white" stroke="#fff" stroke-width="2"/>
+                                <path d="M140 100a40 40 0 0 0-40-40v20a20 20 0 0 1 20 20h20z" 
+                                    fill="white" stroke="#fff" stroke-width="2"/>
+                            </svg>
+                            
+                            <h2 class="name"><span>Учреждение образования</span><br>«Полное название учреждения длинное»</h2>
+                            </div>
                 {% if user.is_authenticated %}
                     <div>
+
+        
                         <div class="user-dropdown">
-                        {% if user.is_authenticated and user.studentprofile %}
+                        {% if user.is_authenticated and user.studentprofile and user.techerprofile %}
                             {% with student=user.studentprofile %}
                                 <button class="dropdown-toggle" type="button" id="userMenu">
                                     <div class="avca-mini">
@@ -62,6 +74,7 @@
                                                 {{ student.last_name|first }}{{ student.first_name|first }}
                                             </div>
                                         {% endif %}
+                                         {{ techer.last_name|first }}{{ techer.first_name|first }}
                                     </div>
                                 </button>
                                 <div class="dropdown-menu">
@@ -71,10 +84,24 @@
                             {% endwith %}
                         {% endif %}
                         </div>
-                    </div>
+            </div>
                 {% else %}
                 {% endif %}
-            </ul>            
+            </ul>  
+<div class="box-uv"> 
+<a href="#">
+    <div>
+        <span class="schet">1</span>  
+        <svg class="uv-tick" version="1.1" id="Capa_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" viewBox="0 0 612.281 612.281" style="enable-background:new 0 0 612.281 612.281;" xml:space="preserve"><g><g id="_x37__29_"><g><path d="M510.533,26.617C413.372-28.176,289.119,4.341,233.021,99.238l-81.25,137.471L0.142,334.504l158.339,89.288l0,0 c-28.049,47.448-11.403,108.116,37.167,135.513c48.591,27.396,110.708,11.138,138.757-36.311l158.339,89.287l10.894-177.147 l81.25-137.471C640.987,202.765,607.695,81.41,510.533,26.617z M215.967,524.932c-29.15-16.442-39.126-52.834-22.317-81.312 l105.566,59.525C282.387,531.623,245.118,541.373,215.967,524.932z M549.7,277.814l-81.25,137.471l-8.16,132.861L73.233,329.894 l113.726-73.335l81.25-137.471C313.088,43.161,412.473,17.152,490.215,60.99C567.958,104.808,594.579,201.888,549.7,277.814z"/></g></g></g></svg>
+    </div>
+</a>
+<a href="#">
+    <div>
+        <span class="schet">2</span>  
+        <svg class="uv-sms" id="Layer_1" enable-background="new 0 0 56 56" viewBox="0 0 56 56" xmlns="http://www.w3.org/2000/svg"><path d="m49 12.4h-42c-2 0-4 1.7-4 4v23.2c0 2.2 1.8 4 4 4h42c2.2 0 4-1.8 4-4v-23.2c0-2.3-2-4-4-4zm-10.7 15.1 12.3-12.3c.3.3.4.8.4 1.2v23.2c0 .2 0 .3-.1.5zm-8.5 5.6c-1 1-2.7 1-3.7 0l-18.7-18.7h41.1zm-24.7 7c-.1-.2-.1-.3-.1-.5v-23.2c0-.5.2-.9.4-1.2l12.3 12.3zm1.9 1.5c-.2 0-.3 0-.5-.1l12.6-12.6 5.7 5.7c1.8 1.8 4.7 1.8 6.5 0l5.7-5.7 12.6 12.6c-.2 0-.3.1-.5.1z"/></svg>
+    </div>
+</a>
+</div>      
             <!-- Основное содержимое -->
             <div class="row">
                 <div class="col-md-12">
