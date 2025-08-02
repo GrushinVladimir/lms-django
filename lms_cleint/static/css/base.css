@@ -295,8 +295,8 @@ footer
     bottom: 18px;
     font-size: 2rem;
     background: #504424;
-    width: 50px;
-    height: 50px;
+    width: 40px;
+    height: 40px;
     text-align: center;
     border-radius: 50%;
     display: flex;
@@ -312,13 +312,13 @@ footer
     bottom: 18px;
     font-size: 2rem;
     background: #504424;
-    width: 50px;
-    height: 50px;
+    width: 40px;
+    height:40px;
     text-align: center;
     border-radius: 50%;
     display: flex;
     align-items: center;
-    padding-bottom: 5px;
+    padding-bottom: 6px;
     justify-content: space-evenly;
 }
 .card-item-mini-two:hover .arrow-card{
@@ -328,14 +328,15 @@ footer
     bottom: 18px;
     font-size: 2rem;
     background: #504424;
-    width: 50px;
-    height: 50px;
+    width: 40px;
+    height: 40px;
     text-align: center;
     border-radius: 50%;
     display: flex;
     align-items: center;
-    padding-bottom: 5px;
+    padding-bottom: 6px;
     justify-content: space-evenly;
+   
 }
   .content {
     transition: transform 0.2s cubic-bezier(0.25, 0.1, 0.25, 1);
@@ -546,25 +547,25 @@ padding-right: 10px;;
 }
 
 .card-item .img-card{
-    filter: brightness(0.5);
+    fill: #39574d;
     transition: transform 0.3s ease, box-shadow 0.3s ease;
     width: 74px;
     height: 74px;
-    opacity: .2;
+    opacity: .6;
 }
 .card-item-mini .img-card{
-    filter: grayscale(1);
+    fill: #39574d;
     transition: transform 0.3s ease, box-shadow 0.3s ease;
     width: 74px;
     height: 74px;
-    opacity: .2;
+    opacity: .6;
 }
 .card-item-mini-two .img-card{
-    filter:hue-rotate(45deg);
+    fill: #7883c5;
     transition: transform 0.3s ease, box-shadow 0.3s ease;
     width: 74px;
     height: 74px;
-    opacity: .2;
+    opacity: .6;
 }
 .box-button 
 {
@@ -594,18 +595,22 @@ padding-right: 10px;;
     font-weight: 500;
     transition: .2s;
     background: none;
-    border:2px solid #609b88;
+    border: 0.120rem solid #000000;
     padding: .3rem;
-    color: #609b88;
-    border-radius: 10px;
+    color: #000000;
+    border-radius: 7px;
     text-decoration: none;
     line-height: 1rem;
-    font-size: .7rem;
+    font-size: .8rem;
+    text-transform: uppercase;
+    background: #e0f1ff;
  
 }
 .box-button-mini a:hover{
-    background: #58755c;
-    color:#fff;
+    background: #a6baca;
+    color: #000;
+    
+
 }
 .arrow-card{
     opacity: .3;
@@ -1079,4 +1084,12 @@ body.modal-open {
     margin-top: 5px;
   }
 }
-  
+.material a{
+  text-decoration: none;
+  list-style:none;
+  font-weight: 600;
+  color: #4f4e4e;
+}
+.material tr:hover{
+  background: #76bdac17;
+}

@@ -342,3 +342,20 @@ class FileAnswer(models.Model):
 
     # Обновляем поле file с новым upload_to
     file = models.FileField(upload_to=get_upload_path)
+
+class Notification(models.Model):
+    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE, related_name='notifications')
+    message = models.TextField()
+    is_read = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    link = models.CharField(max_length=255, blank=True, null=True)
+    notification_type = models.CharField(max_length=50, choices=[
+        ('grade', 'Оценка'),
+        ('answer', 'Ответ студента'),
+    ])
+    
+    class Meta:
+        ordering = ['-created_at']  # Исправлено с uploaded_at на created_at
+    
+    def __str__(self):
+        return f"{self.get_notification_type_display()} для {self.user}"

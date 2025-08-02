@@ -10,6 +10,8 @@ from django.forms import inlineformset_factory
 from itertools import chain
 from django.conf import settings
 from lms_cleint.models import Course, Subject, Test, Question, Answer, TestResult, Chapter, ChapterFile, Article, Video,Link, TeacherProfile, StudentProfile, StudentGroup, Video,Link
+
+
 from lms_cleint.forms import CourseForm, SubjectForm, TestForm, QuestionForm, ChapterForm, ChapterFileForm, ArticleForm, QuestionFormSet
 import os
 import json
@@ -25,6 +27,9 @@ from django.utils import timezone
 from lms_cleint.models import MaterialCompletion
 from sentence_transformers import SentenceTransformer
 
+from lms_cleint.models import Notification, FileAnswer
+from django.urls import reverse
+
 
 
 
@@ -36,6 +41,33 @@ from django.contrib.auth import get_user_model
 
 
 logger = logging.getLogger(__name__)
+
+
+
+@login_required
+def notifications(request):
+    notifications = request.user.notifications.all()
+    
+    # Помечаем уведомления как прочитанные при открытии страницы
+    if request.method == 'GET':
+        unread_notifications = notifications.filter(is_read=False)
+        unread_notifications.update(is_read=True)
+    
+    return render(request, 'lms_cleint/notifications.html', {
+        'notifications': notifications
+    })
+
+@login_required
+def mark_notification_as_read(request, notification_id):
+    notification = get_object_or_404(Notification, pk=notification_id, user=request.user)
+    notification.is_read = True
+    notification.save()
+    return JsonResponse({'status': 'success'})
+
+@login_required
+def get_unread_count(request):
+    count = request.user.notifications.filter(is_read=False).count()
+    return JsonResponse({'count': count})
 
 
 @login_required
@@ -755,7 +787,6 @@ def get_grade_details(request, answer_id):
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
 
-@require_POST
 @login_required
 @teacher_required
 def grade_file_answer(request):
@@ -766,19 +797,11 @@ def grade_file_answer(request):
         grade = int(request.POST.get('grade'))
         feedback = request.POST.get('feedback', '')
 
-        logger.debug(f"Answer ID: {answer_id}, Grade: {grade}, Feedback: {feedback}")
-
-        if not (0 <= grade <= 10):
-            logger.error("Invalid grade value")
-            raise ValueError("Оценка должна быть от 0 до 10")
-
         answer = get_object_or_404(
             FileAnswer,
             pk=answer_id,
             chapter_file__chapter__subject__teachers=request.user.teacherprofile
         )
-
-        logger.debug(f"Answer found: {answer}")
 
         answer.grade = grade
         answer.feedback = feedback
@@ -787,14 +810,15 @@ def grade_file_answer(request):
         answer.is_new = True
         answer.save()
 
-        logger.debug(f"Answer graded successfully: {answer}")
+        # Создаем уведомление для студента
+        Notification.objects.create(
+            user=answer.student,
+            message=f"Преподаватель {request.user.get_full_name()} поставил вам оценку {grade} за задание '{answer.chapter_file.display_name}'",
+            link=reverse('chapter_detail_student', args=[answer.chapter_file.chapter.id]),
+            notification_type='grade'
+        )
 
-        return JsonResponse({
-            'status': 'success',
-            'grade': grade,
-            'feedback': feedback
-        })
-
+        return JsonResponse({'status': 'success'})
     except Exception as e:
         logger.error(f"Error grading file answer: {str(e)}")
         return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
@@ -1603,80 +1627,53 @@ def get_student_answers(request):
 
     
 
+from django.urls import reverse
+from lms_cleint.models import Notification
+
 @require_POST
 @login_required
 @student_required
 def upload_answer(request):
-    logger.debug("Upload answer request received")
-
-    if request.method == 'POST':
+    try:
         file_id = request.POST.get('file_id')
         answer_file = request.FILES.get('answer_file')
 
-        logger.debug(f"File ID: {file_id}, Answer file: {answer_file}")
-
         if not file_id or not answer_file:
-            logger.error("File ID or answer file is missing")
-            return JsonResponse(
-                {'status': 'error', 'message': 'Необходимо указать файл и ID задания'},
-                status=400
-            )
+            return JsonResponse({'status': 'error', 'message': 'Необходимо указать файл и ID задания'}, status=400)
 
-        try:
-            chapter_file = ChapterFile.objects.get(pk=file_id, provide_answer=True)
-            logger.debug(f"Chapter file found: {chapter_file}")
-        except ChapterFile.DoesNotExist:
-            logger.error("Chapter file not found or does not accept answers")
-            return JsonResponse(
-                {'status': 'error', 'message': 'Файл задания не найден или не принимает ответы'},
-                status=404
-            )
-
+        chapter_file = get_object_or_404(ChapterFile, pk=file_id, provide_answer=True)
         student_profile = request.user.studentprofile
-        if not chapter_file.chapter.student_groups.filter(id=student_profile.group.id).exists():
-            logger.error("Student does not have access to this assignment")
-            return JsonResponse(
-                {'status': 'error', 'message': 'У вас нет доступа к этому заданию'},
-                status=403
-            )
 
+        # Удаляем предыдущий ответ если есть
         FileAnswer.objects.filter(chapter_file=chapter_file, student=request.user).delete()
-        logger.debug("Deleted previous answer if any")
 
-        try:
-            file_answer = FileAnswer.objects.create(
-                chapter_file=chapter_file,
-                student=request.user,
-                file=answer_file
-            )
-            logger.debug(f"File answer created: {file_answer}")
+        # Создаем новый ответ
+        file_answer = FileAnswer.objects.create(
+            chapter_file=chapter_file,
+            student=request.user,
+            file=answer_file
+        )
 
-            file_name = os.path.basename(file_answer.file.name)
-            short_name = (file_name[:15] + '...') if len(file_name) > 15 else file_name
-
-            logger.debug(f"Returning success response for file: {file_name}")
-
-            return JsonResponse({
-                'status': 'success',
-                'file_name': file_name,
-                'short_name': short_name,
-                'file_url': file_answer.file.url,
-                'answer_id': file_answer.id
-            })
-
-        except Exception as e:
-            logger.error(f"Error saving file: {str(e)}")
-            return JsonResponse(
-                {'status': 'error', 'message': f'Ошибка при сохранении файла: {str(e)}'},
-                status=500
+        # Создаем уведомления для всех преподавателей предмета
+        subject = chapter_file.chapter.subject
+        for teacher in subject.teachers.all():
+            Notification.objects.create(
+                user=teacher.user,
+                message=f"Студент {request.user.get_full_name()} ({student_profile.group}) загрузил ответ по предмету '{subject.name}'",
+                link=reverse('chapter_detail', args=[chapter_file.chapter.id]),
+                notification_type='answer'
             )
 
-    logger.error("Invalid request method")
-    return JsonResponse(
-        {'status': 'error', 'message': 'Неверный метод запроса'},
-        status=405
-    )
+        return JsonResponse({
+            'status': 'success',
+            'file_name': answer_file.name,
+            'answer_id': file_answer.id
+        })
 
+    except Exception as e:
+        logger.error(f"Error uploading answer: {str(e)}")
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+    
 
 @login_required
 def delete_file(request, file_id):

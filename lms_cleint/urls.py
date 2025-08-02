@@ -94,6 +94,8 @@ urlpatterns = [
     path('get_student_answers/', views.get_student_answers, name='get_student_answers'),
 
 
-
+    path('notifications/', views.notifications, name='notifications'),
+    path('notifications/mark_as_read/<int:notification_id>/', views.mark_notification_as_read, name='mark_notification_as_read'),
+    path('notifications/unread_count/', views.get_unread_count, name='get_unread_count')
 
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

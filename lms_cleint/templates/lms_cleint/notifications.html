@@ -1,0 +1,49 @@
+{% extends 'lms_cleint/base.html' %}
+{% load notification_tags %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Уведомления</h2>
+    
+    <div class="list-group">
+        {% for notification in notifications %}
+        <a href="{{ notification.link|default:'#' }}" 
+           class="list-group-item list-group-item-action {% if not notification.is_read %}list-group-item-primary{% endif %}"
+           onclick="markAsRead({{ notification.id }})">
+            <div class="d-flex w-100 justify-content-between">
+                <h5 class="mb-1">{{ notification.message }}</h5>
+                <small>{{ notification.created_at|timesince }} назад</small>
+            </div>
+            <p class="mb-1">
+                {% if notification.notification_type == 'grade' %}
+                <span class="badge bg-success">Оценка</span>
+                {% else %}
+                <span class="badge bg-info">Ответ студента</span>
+                {% endif %}
+            </p>
+            {% if not notification.is_read %}
+            <span class="badge bg-primary rounded-pill">Новое</span>
+            {% endif %}
+        </a>
+        {% empty %}
+        <div class="alert alert-info">У вас нет уведомлений</div>
+        {% endfor %}
+    </div>
+</div>
+
+<script>
+function markAsRead(notificationId) {
+    fetch(`/notifications/mark_as_read/${notificationId}/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/json'
+        }
+    });
+}
+</script>
+
+
+{% endblock %}
+
+
