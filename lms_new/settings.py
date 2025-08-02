@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'tinymce',
     'sentence_transformers',
 
+
 ]
 
 AUTH_USER_MODEL = 'lms_cleint.CustomUser'

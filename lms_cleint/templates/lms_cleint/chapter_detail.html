@@ -8,15 +8,20 @@
         margin-left: 10px;
         user-select: none;
     }
-    .list-group-item {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
+    .list-group-items {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #fff;
+    padding: 1rem;
+    border-radius: 10px;
+    margin-bottom: .5rem;
     }
     .material-content {
         flex-grow: 1;
     }
     .material-actions {
+        justify-content: space-between;
         display: flex;
         align-items: center;
     }
@@ -81,7 +86,6 @@
 {% endblock %}
 
 {% block content %}
-<p>{{ chapter.name }} / {{ chapter.subject.name }}</p>
 
 <h3 class="mt-4">Материалы главы</h3>
 <div class="mb-3">
@@ -104,7 +108,7 @@
 
 <ul id="materials-list" class="list-group" data-chapter-id="{{ chapter.id }}">
 {% for material in materials %}
-<li class="list-group-item"
+<li class="list-group-items"
     data-id="{% if material.material_type == 'file' %}file_{% elif material.material_type == 'article' %}article_{% elif material.material_type == 'test' %}test_{% elif material.material_type == 'video' %}video_{% elif material.material_type == 'link' %}link_{% endif %}{{ material.id }}"
     data-type="{{ material.material_type }}">
     <div class="material-content">
@@ -196,7 +200,7 @@
     </div>
 </li>
 {% empty %}
-<li class="list-group-item">Материалы пока не добавлены</li>
+<li class="list-group-items">Материалы пока не добавлены</li>
 {% endfor %}
 </ul>
 

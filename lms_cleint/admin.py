@@ -32,6 +32,10 @@ class TeacherProfileAdmin(admin.ModelAdmin):
     search_fields = ('last_name', 'first_name', 'middle_name')
     list_filter = ('category', 'position')
 
+    def avatar_circle_pre(self, obj):
+        return obj.generate_avatar_circle()
+    avatar_circle_pre.short_description = 'Avatar'
+
 class AnswerInline(admin.TabularInline):
     model = Answer
     extra = 1

@@ -31,11 +31,7 @@ from sentence_transformers import SentenceTransformer
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes.fields import GenericForeignKey
 
-
-
-
-
-
+from django.contrib.auth import get_user_model
 
 
 
@@ -1696,6 +1692,11 @@ def custom_logout(request):
     return redirect('login')
 
 def login_view(request):
+    # Если пользователь уже авторизован, перенаправляем его на course_list
+    if request.user.is_authenticated:
+        return redirect('course_list')
+    
+    # Остальная логика обработки формы авторизации
     if request.method == 'POST':
         form = AuthenticationForm(request, data=request.POST)
         if form.is_valid():
@@ -1708,10 +1709,14 @@ def login_view(request):
     else:
         form = AuthenticationForm()
     return render(request, 'lms_cleint/login.html', {'form': form})
+
+
+
 @login_required
 def student_profile(request, student_id):
     student = get_object_or_404(StudentProfile, pk=student_id)
     return render(request, 'lms_cleint/student_profile.html', {'student': student})
+
 @login_required
 def course_list(request, ):
     courses = Course.objects.all()

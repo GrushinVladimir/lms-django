@@ -1,12 +1,40 @@
 {% extends 'lms_cleint/base.html' %}
 
 {% block content %}
-<h2>Профиль преподавателя</h2>
-<div>
-    <p><strong>ФИО:</strong> {{ teacher.last_name }} {{ teacher.first_name }} {{ teacher.middle_name }}</p>
-    <p><strong>Категория:</strong> {{ teacher.get_category_display }}</p>
-    <p><strong>Должность:</strong> {{ teacher.position }}</p>
-    <p><strong>Кабинет:</strong> {{ teacher.classroom }}</p>
-    <p><strong>Телефон:</strong> {{ teacher.phone }}</p>
+<div class="col-md-4 m-auto">
+    <div class="card-item-profile"> 
+        <div class="avca">
+            {% if teacher.avatar %}
+                    <img src="{{ teacher.avatar.url }}" alt="Avatar" class="avatar-img">
+            {% else %}
+            <div class="avatar-pla">
+                {{ teacher.generate_avatar_circle_pre }}
+            </div>
+             {% endif %}
+        </div>
+            <table class="table-profile">
+                <tr>
+                    <td>ФИО:</td>
+                    <td>{{ teacher.last_name }} {{ teacher.first_name }} {{ teacher.middle_name }}</td>
+                </tr>
+                <tr>
+                    <td>Категория:</td>
+                    <td>{{ teacher.get_category_display }}</td>
+                </tr>
+                <tr>
+                    <td>Должность:</td>
+                    <td>{{ teacher.position }}</td>
+                </tr>
+                <tr>
+                    <td>Кабинет:</td>
+                    <td>{{ teacher.classroom }}</td>
+                </tr>
+                <tr>
+                    <td>Номер телефона:</td>
+                    <td>{{ teacher.phone }}</td>
+                </tr>
+            </table>
+    </div>
 </div>
 {% endblock %}
+

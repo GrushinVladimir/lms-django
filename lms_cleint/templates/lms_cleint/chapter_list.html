@@ -1,57 +1,59 @@
 {% extends 'lms_cleint/base.html' %}
 {% block content %}
-<h2>Главы предмета: {{ subject.name }}</h2>
-
-<table class="table">
-    <thead>
-        <tr>
-            <th>Название главы</th>
-            <th>Преподаватели</th>
-             {% if user.is_teacher or user.teacherprofile %}
-            <th>Группы</th>
-            <th>Действия</th>
-            {% endif %}
-        </tr>
-    </thead>
-    <tbody>
-        {% for chapter in chapters %}
-        <tr>
-            <td><a href="{% url 'chapter_detail' chapter.id %}">{{ chapter.name }}</a></td>
-            <td>
-                {% for teacher in chapter.teachers.all %}
-                <a href="{% url 'teacher_profile' teacher.id %}">{{ teacher.last_name }} {{ teacher.first_name|slice:":1" }}.</a>{% if not forloop.last %}, {% endif %}
-                {% empty %}
-                Нет преподавателей
-                {% endfor %}
-            </td>
-            {% if user.is_teacher or user.teacherprofile %}
-            <td>
-                {% for group in chapter.student_groups.all %}
-                <a href="{% url 'group_list' group.id %}">{{ group.group_number }}</a>{% if not forloop.last %}, {% endif %}
-                {% empty %}
-                Нет групп
-                {% endfor %}
-            </td>
-             
-            <td>
-                <a href="{% url 'chapter_detail' chapter.id %}" class="btn btn-sm btn-primary">Перейти</a>
-               
-                <a href="{% url 'chapter_delete' chapter.id %}" class="btn-sm btn btn-danger">Удалить</a>
-               
-            </td>
-             {% endif %}
-        </tr>
-        {% empty %}
-        <tr>
-            <td colspan="4">Главы пока не созданы</td>
-        </tr>
+<table class="responsive-table">
+  <thead>
+    <tr>
+      <th>Название главы</th>
+      <th>Преподаватели</th>
+      <th>Группы</th>
+      {% if user.is_teacher or user.teacherprofile %}
+      <th>Действия</th>
+      {% endif %}
+    </tr>
+  </thead>
+  <tbody class="material">
+     {% for chapter in chapters %}
+    <tr>
+      <td data-label="Название предмета">
+        <a href="{% url 'chapter_detail' chapter.id %}">{{ chapter.name }}</a>
+      </td>
+      <td data-label="Преподаватели">
+        {% for teacher in chapter.teachers.all %}
+          <a href="{% url 'teacher_profile' teacher.id %}">
+            {{ teacher.last_name }} {{ teacher.first_name|slice:":1" }}.
+          </a>{% if not forloop.last %}, {% endif %}
         {% endfor %}
-    </tbody>
+      </td>
+      {% if user.is_teacher or user.teacherprofile %}
+      <td data-label="Группы">
+        {% for group in subject.student_groups.all %}
+          <a href="{% url 'group_list' group.id %}">{{ group.group_number }}</a>
+          {% if not forloop.last %}, {% endif %}
+        {% endfor %}
+      </td>
+      <td data-label="Действия">  
+        <div class="move">
+          <a href="" class="edit">
+              <svg width="25" height="25" version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" viewBox="0 0 512 512" style="enable-background:new 0 0 512 512;" xml:space="preserve"><g><g>
+                    <path d="M498.125,92.38l-78.505-78.506c-18.496-18.497-48.436-18.5-66.935,0C339.518,27.043,50.046,316.516,44.525,322.035 c-2.182,2.182-3.725,4.918-4.46,7.915L0.502,491.068c-3.036,12.368,8.186,23.44,20.431,20.432 c8.361-2.053,153.718-37.747,161.117-39.564c2.996-0.735,5.734-2.278,7.915-4.46c5.816-5.816,293.677-293.677,308.161-308.161 C516.622,140.818,516.627,110.879,498.125,92.38z M39.957,472.043l1.612-6.562l4.951,4.951L39.957,472.043z M84.874,461.014 l-33.887-33.887l14.736-60.009l79.16,79.16L84.874,461.014z M178.022,431.647l-97.668-97.668L332.559,81.773l97.668,97.668 L178.022,431.647z M474.24,135.429l-19.508,19.507l-97.667-97.668l19.507-19.507c5.294-5.293,13.867-5.298,19.163,0l78.506,78.507 C479.536,121.563,479.536,130.132,474.24,135.429z"/></g></g></svg>
+                
+          </a>
+          <a href="{% url 'chapter_delete' chapter.id %}" class="delete">
+ <svg width="25" height="25" version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" viewBox="0 0 284.011 284.011" style="enable-background:new 0 0 284.011 284.011;" xml:space="preserve"><g><g><path d="M235.732,66.214l-28.006-13.301l1.452-3.057c6.354-13.379,0.639-29.434-12.74-35.789L172.316,2.611 c-6.48-3.079-13.771-3.447-20.532-1.042c-6.76,2.406-12.178,7.301-15.256,13.782l-1.452,3.057L107.07,5.106 c-14.653-6.958-32.239-0.698-39.2,13.955L60.7,34.155c-1.138,2.396-1.277,5.146-0.388,7.644c0.89,2.499,2.735,4.542,5.131,5.68 l74.218,35.25h-98.18c-2.797,0-5.465,1.171-7.358,3.229c-1.894,2.059-2.839,4.815-2.607,7.602l13.143,157.706 c1.53,18.362,17.162,32.745,35.588,32.745h73.54c18.425,0,34.057-14.383,35.587-32.745l11.618-139.408l28.205,13.396 c1.385,0.658,2.845,0.969,4.283,0.969c3.74,0,7.328-2.108,9.04-5.712l7.169-15.093C256.646,90.761,250.386,73.175,235.732,66.214z M154.594,23.931c0.786-1.655,2.17-2.905,3.896-3.521c1.729-0.614,3.59-0.521,5.245,0.267l24.121,11.455 c3.418,1.624,4.878,5.726,3.255,9.144l-1.452,3.057l-36.518-17.344L154.594,23.931z M169.441,249.604 c-0.673,8.077-7.55,14.405-15.655,14.405h-73.54c-8.106,0-14.983-6.328-15.656-14.405L52.35,102.728h129.332L169.441,249.604z M231.62,96.835l-2.878,6.06L83.057,33.701l2.879-6.061c2.229-4.695,7.863-6.698,12.554-4.469l128.661,61.108 C231.845,86.509,233.85,92.142,231.62,96.835z"/></g></g></svg></a>
+                          </a>
+        </div>
+      </td>
+      {% endif %}
+    </tr>
+    {% endfor %}
+  </tbody>
 </table>
+
+
 
 <div class="mt-3">
     {% if user.is_teacher or user.teacherprofile %}
-    <a href="{% url 'chapter_create' subject.id %}" class="btn btn-success">Создать новую главу</a>
+    <a href="{% url 'chapter_create' subject.id %}" class="submit-button">Создать новую главу</a>
     {% endif %}
     <a href="{% url 'subject_list' subject.course.id %}" class="btn btn-secondary">Вернуться к предметам</a>
 </div>

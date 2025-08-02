@@ -1,8 +1,7 @@
 {% extends 'lms_cleint/base.html' %}
 
 {% block content %}
-<div class="col-md-6 m-auto">
-<h2>Профиль студента</h2>
+<div class="col-md-4 m-auto">
 <div class="card-item-profile">
     <div class="avca">
     {% with student=user.studentprofile %}
@@ -16,11 +15,29 @@
     {% endwith %}
 
     </div>
-    <p><strong>ФИО:</strong> {{ student.last_name }} {{ student.first_name }} {{ student.middle_name }}</p>
-    <p><strong>Номер зачетной книжки:</strong> {{ student.record_book_number|default:"N/A" }}</p>
-    <p><strong>Группа:</strong> {{ student.group.group_number }}</p>
-    <p><strong>Электронная почта:</strong> {{ student.email|default:"N/A" }}</p>
-    <p><strong>Номер телефона:</strong> {{ student.phone_number|default:"N/A" }}</p>
+    <table class="table-profile">
+        <tr>
+            <td>ФИО:</td>
+            <td>{{ student.last_name }} {{ student.first_name }} {{ student.middle_name }}</td>
+        </tr>
+        <tr>
+            <td>Номер зачетной книжки:</td>
+            <td>{{ student.record_book_number|default:"N/A" }}</td>
+        </tr>
+        <tr>
+            <td>Группа:</td>
+            <td>{{ student.group.group_number }}</td>
+        </tr>
+        <tr>
+            <td>Электронная почта:</td>
+            <td>{{ student.email|default:"N/A" }}</td>
+        </tr>
+        <tr>
+            <td>Номер телефона:</td>
+            <td>{{ student.phone_number|default:"N/A" }}</td>
+        </tr>
+    </table>
+
 </div>
 </div>
 {% endblock %}

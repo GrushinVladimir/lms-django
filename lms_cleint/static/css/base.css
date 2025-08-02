@@ -1,11 +1,25 @@
+html{
+  scroll-behavior: auto;
+  overscroll-behavior: none;
+}
+
 html, body 
 {
    background:#efefef;
    height: 100%;
-
+   scrollbar-gutter: stable;
+}
+body{
+  overflow-x: hidden;
+}
+.animated-element {
+  
+  backface-visibility: hidden;
+  transform: translateZ(0);
 }
 .background-block {
   width: 100%;
+  opacity: .3;
   height: 100vh;
   filter: contrast(0.5);
   background-image: url('../images/fonts-image.png');
@@ -24,6 +38,18 @@ html, body
     background-position: top center;
   }
 }
+.card-item, .card-item-mini, .card-item-mini-two {
+  
+  backface-visibility: hidden;
+}
+
+.disable-effects .card-item:hover,
+.disable-effects .card-item-mini:hover,
+.disable-effects .card-item-mini-two:hover {
+  transform: none !important;
+}
+
+
  body 
  {    
     background: none;
@@ -35,18 +61,16 @@ html, body
 }
 .card-item-profile
   {
+    align-items: center;
     display: flex;
-    background: rgb(120 131 197 / 25%);
+    background: rgb(74 140 143 / 25%);
     border-radius: 14px;
     border: 1px solid rgba(255, 255, 255, 0.4);
-    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1), inset 0 0 0 1px rgba(255, 255, 255, 0.2);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    transition: all 0.4s ease;
+    box-shadow: 0 4px 30px rgba(0,0,0,0.1);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
     z-index: 1;
     padding: 1rem;
     flex-direction: column;
-    align-content: flex-start;
 }
 
 
@@ -75,7 +99,7 @@ footer
 .toast 
 {
     box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
-    transition: all 0.3s ease;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
     padding-right: 1rem;;
 }
 .toast-body
@@ -149,7 +173,7 @@ footer
     padding-top: 2rem;
     border-radius: 23px;
     top: 1rem;
-    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1), inset 0 0 0 1px rgba(255, 255, 255, 0.2);
+    box-shadow: 0 4px 30px rgba(0,0,0,0.1);
     margin-left:auto;
     margin-right: auto;
 }
@@ -180,11 +204,9 @@ footer
         background: rgb(120 131 197 / 25%);
         border-radius: 14px;
         border: 1px solid rgba(255, 255, 255, 0.4);
-        box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1), inset 0 0 0 1px rgba(255, 255, 255, 0.2);
-        backdrop-filter: blur(20px);
-        -webkit-backdrop-filter: blur(20px);
+        box-shadow: 0 4px 30px rgba(0,0,0,0.1);
         overflow: hidden;
-        transition: all 0.4s ease;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
         z-index: 1;
         padding: 1rem;
         height: 140px;
@@ -201,10 +223,8 @@ footer
     box-shadow: 
       0 4px 30px rgba(0, 0, 0, 0.1),
       inset 0 0 0 1px rgba(255, 255, 255, 0.2);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
     overflow: hidden;
-    transition: all 0.4s ease;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
     z-index: 1;
     padding: 1rem;
     height:140px;
@@ -221,10 +241,8 @@ footer
     box-shadow: 
       0 4px 30px rgba(0, 0, 0, 0.1),
       inset 0 0 0 1px rgba(255, 255, 255, 0.2);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
     overflow: hidden;
-    transition: all 0.4s ease;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
     z-index: 1;
     padding: 1rem;
     height:240px;
@@ -349,7 +367,7 @@ footer
 }
   .card-item-mini-two .img-card{
     filter:hue-rotate(45deg);
-    transition: all 0.4s ease;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
     width: 74px;
     height: 74px;
     opacity: .2;
@@ -365,11 +383,9 @@ footer
         background: rgb(120 131 197 / 25%);
         border-radius: 14px;
         border: 1px solid rgba(255, 255, 255, 0.4);
-        box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1), inset 0 0 0 1px rgba(255, 255, 255, 0.2);
-        backdrop-filter: blur(20px);
-        -webkit-backdrop-filter: blur(20px);
+        box-shadow: 0 4px 30px rgba(0,0,0,0.1);
         overflow: hidden;
-        transition: all 0.4s ease;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
         z-index: 1;
         padding: 1rem;
         height: 140px;
@@ -386,10 +402,8 @@ footer
     box-shadow: 
       0 4px 30px rgba(0, 0, 0, 0.1),
       inset 0 0 0 1px rgba(255, 255, 255, 0.2);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
     overflow: hidden;
-    transition: all 0.4s ease;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
     z-index: 1;
     padding: 1rem;
     height:140px;
@@ -405,10 +419,8 @@ footer
     box-shadow: 
       0 4px 30px rgba(0, 0, 0, 0.1),
       inset 0 0 0 1px rgba(255, 255, 255, 0.2);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
     overflow: hidden;
-    transition: all 0.4s ease;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
     z-index: 1;
     padding: 1rem;
     height:224px;
@@ -535,21 +547,21 @@ padding-right: 10px;;
 
 .card-item .img-card{
     filter: brightness(0.5);
-    transition: all 0.4s ease;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
     width: 74px;
     height: 74px;
     opacity: .2;
 }
 .card-item-mini .img-card{
     filter: grayscale(1);
-    transition: all 0.4s ease;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
     width: 74px;
     height: 74px;
     opacity: .2;
 }
 .card-item-mini-two .img-card{
     filter:hue-rotate(45deg);
-    transition: all 0.4s ease;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
     width: 74px;
     height: 74px;
     opacity: .2;
@@ -610,7 +622,7 @@ padding-right: 10px;;
     align-items: center;
     padding-bottom: 2px;
     justify-content: space-evenly;
-    transition: all 0.2s ease;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
     color:#e4f5f2;
     cursor: pointer;
 }
@@ -661,7 +673,8 @@ padding-right: 10px;;
     visibility: hidden;
 }
 .avca{
-  padding: 2rem;
+    margin-top: 2rem;
+    padding: 2rem;
     background: #7cc3db;
     display: flex;
     width: 100px;
@@ -791,7 +804,7 @@ padding-right: 10px;;
     opacity: 0;
     visibility: hidden;
     transform: translateY(10px);
-    transition: all 0.3s ease;
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
 .dropdown-menu.show {
@@ -891,5 +904,179 @@ div:hover > .schet {
   .name,.logo{
   display: none;
 }
+}
+.table-profile{
+  margin-top:2rem;
+  margin-bottom: 2rem;
+}
+.table-profile td{
+  padding: .3rem 1rem;
+}
+.table-profile tr{
+  border-bottom: 1px solid #fff;
+
+}
+.breadcrumb-link{
+  color:#599184
+}
+.breadcrumb-link:hover{
+  color:#36534d
+}
+body.modal-open {
+    overflow: hidden;
+    padding-right: 0 !important; /* Отключаем стандартный padding от Bootstrap */
+}
+.modal-body{
+    padding-bottom: 4rem;
+    padding-top: 3rem;
+}
+.arrow-left{
+    border: 1px solid #0000005c;
+    border-radius: 50%;
+    padding: 3px;
+    width: 32px;
+    height: 32px;
+    fill:#0000005c;
+    margin-right: 10px;
+}
+.breadcrumb{
+  display: flex;
+    align-items: center;
+}
+.arrow-left:hover{
+  border: 1px solid #599184;
+  fill:#599184;
+  cursor: pointer;
+}
+
+.dropdown-menu a{
+    display: block;
+    margin: auto;
+    width: 90%;
+    text-align: center;
+    list-style: none;
+    text-decoration: none;
+    color: #000;
+    padding: .3rem 0rem;
+    border-radius: 15px;
+    
+}
+.dropdown-menu a:hover{
+  background:rgb(80 141 127 / 37%);
+  transition: .3s;
+}
+.dropdown-menu {
+  padding:0rem .5rem;
+}
+.edit svg, .delete svg{
+
+    padding: 3px;
+    fill:#0000005c;
+
+}
+.edit, .delete{
+    display: flex;
+    width: 35px;
+    height: 35px;
+    border: 2px solid #0000005c;
+    border-radius: 50%;
+    list-style: none;
+    text-decoration: none;
+    align-items: center;
+    margin-right: 5px;
+    justify-content: center;
+}
+.move{
+  display: flex;
+}
+.edit svg:hover, .delete svg:hover{
+  fill:#599184;
+  cursor: pointer;
+}
+.edit:hover, .delete:hover{
+  border: 2px solid #599184;
+}
+
+
+.responsive-table th{
+  padding:15px;
+}
+.responsive-table td{
+  padding:15px;
+}
+@media screen and (min-width: 700px) {
+.responsive-table tr:not(:first-child):not(:last-child) {
+  border-bottom: 1px solid #d5d5d5;
+}
+
+.responsive-table tr:first-child {
+  border-bottom: 1px solid #d5d5d5;
+}}
+.responsive-table {
+    border-radius: 16px;
+    width: 100%;
+    margin-bottom: 1rem;
+    background: #fff;
+    vertical-align: top;
+    border-color: var(--bs-table-border-color);}
+
+/* Мобильная версия */
+@media screen and (max-width: 700px) {
+  .responsive-table table, 
+  .responsive-table thead, 
+  .responsive-table tbody, 
+  .responsive-table th, 
+  .responsive-table td, 
+  .responsive-table tr { 
+    display: block; 
+  }
+  
+  .responsive-table thead tr { 
+    position: absolute;
+    top: -9999px;
+    left: -9999px;
+  }
+  
+  .responsive-table tr:not(:last-child) {
+    border-bottom: 10px solid #efefef;
+    padding: 10px;
+  }
+    .responsive-table tr
+  {
+     margin-bottom: 15px;
+  }
+  
+  .responsive-table td {
+    /* Каждая ячейка становится блоком */
+    border: none;
+    border-bottom: 1px solid #eee;
+    position: relative;
+    padding-left: 50%;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  
+  .responsive-table td:before {
+    /* Вставляем заголовок из data-label */
+    content: attr(data-label);
+    position: absolute;
+    left: 10px;
+    top: 10px;
+    width: 45%;
+    padding-right: 10px;
+    font-weight: bold;
+    white-space: nowrap;
+  }
+  
+  .responsive-table td:last-child {
+    border-bottom: 0;
+  }
+  
+  /* Стили для кнопок действий */
+  .move {
+    display: flex;
+    gap: 10px;
+    margin-top: 5px;
+  }
 }
   

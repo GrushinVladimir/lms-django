@@ -38,10 +38,17 @@ class TeacherProfile(models.Model):
     position = models.CharField(max_length=100)
     classroom = models.CharField(max_length=20)
     phone = models.CharField(max_length=20)
+    avatar = models.ImageField(upload_to='avatars_pre/', blank=True, null=True)
 
     def __str__(self):
         initials = f"{self.first_name[0]}.{self.middle_name[0]}." if self.middle_name else f"{self.first_name[0]}."
         return f"{self.last_name} {initials}"
+    
+    def generate_avatar_circle_pre(self):
+        if self.last_name and self.first_name:
+            initials = f"{self.last_name[0]}{self.first_name[0]}"
+            return initials.upper()
+        return "NN"
 
 class StudentProfile(models.Model):
     user = models.OneToOneField(CustomUser, on_delete=models.CASCADE)
