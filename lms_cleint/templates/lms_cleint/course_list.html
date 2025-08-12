@@ -19,7 +19,7 @@
             <div class="title">
                 <a href=""><p>А;№"КА№%К№</p></a>
             </div>
-                <span class="arrow-card" ><a href="№">&rarr;</a></span>
+                <a href=""><span class="arrow-card"  data-text="Перейти" ><span>&rarr;</span></span></a>
         </div>
     </div>
     </div>
@@ -41,7 +41,7 @@
             <div class="title">
                 <a href=""><p>График выполнения</p></a>
             </div>
-                <span class="arrow-card" ><a href="№">&rarr;</a></span>
+                <a href=""><span class="arrow-card"  data-text="Перейти" ><span>&rarr;</span></span></a>
         </div>
     </div>
     </div>
@@ -56,7 +56,7 @@
             <div class="title">
                 <a href=""><p>История выполнения</p></a>
             </div>
-                <span class="arrow-card" ><a href="№">&rarr;</a></span>
+                <a href=""><span class="arrow-card"  data-text="Перейти" ><span>&rarr;</span></span></a>
         </div>
     </div>
     </div>
@@ -71,7 +71,7 @@
             <div class="title">
                 <a href=""><p>Преподаватели</p></a>
             </div>
-                <span class="arrow-card" ><a href="№">&rarr;</a></span>
+                <a href=""><span class="arrow-card"  data-text="Перейти" ><span>&rarr;</span></span></a>
         </div>
     </div>
     </div>
@@ -104,7 +104,7 @@
                 <a class="" href="{% url 'course_delete' course.id %}" >Удалить</a>
             </div>
             {% endif %}
-                <span class="arrow-card" ><a href="{% url 'subject_list' course.id %}">&rarr;</a></span>
+                <a href="{% url 'subject_list' course.id %}"><span class="arrow-card"  data-text="Перейти" ><span>&rarr;</span></span></a>
         </div>
 
     </div>

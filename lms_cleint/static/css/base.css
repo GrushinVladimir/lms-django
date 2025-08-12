@@ -1,16 +1,52 @@
-html{
-  scroll-behavior: auto;
-  overscroll-behavior: none;
+html {
+    scroll-behavior: smooth;
+    scroll-snap-type: y proximity;
 }
 
-html, body 
-{
-   background:#efefef;
-   height: 100%;
-   scrollbar-gutter: stable;
+body {
+    overflow-x: hidden;
+    transform: translateZ(0);
+    backface-visibility: hidden;
+    perspective: 1000;
+    will-change: scroll-position;
 }
-body{
-  overflow-x: hidden;
+/* Основные стили карточек (применяются всегда) */
+.card-item,
+.card-item-mini,
+.card-item-mini-two {
+    background: #fff;
+    border-radius: 14px;
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1), 
+                inset 0 0 0 1px rgba(255, 255, 255, 0.2);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+/* Только hover-эффекты (будут отключаться при скролле) */
+.card-item:not(.no-hover):hover,
+.card-item-mini:not(.no-hover):hover,
+.card-item-mini-two:not(.no-hover):hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2),
+                inset 0 0 0 1px rgba(255, 255, 255, 0.3);
+}
+
+/* Отключение только hover-эффектов при скролле */
+.no-hover .card-item:hover,
+.no-hover .card-item-mini:hover,
+.no-hover .card-item-mini-two:hover {
+    transform: none !important;
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1), 
+                inset 0 0 0 1px rgba(255, 255, 255, 0.2) !important;
+}
+.card-item, 
+.card-item-mini, 
+.card-item-mini-two,
+.animated-element {
+    will-change: transform;
+    transform: translate3d(0,0,0);
+    backface-visibility: hidden;
+    perspective: 1000px;
 }
 .animated-element {
   
@@ -201,7 +237,7 @@ footer
         position: relative;
         display: flex;
         align-items: center;
-        background: rgb(120 131 197 / 25%);
+        background: #fff;
         border-radius: 14px;
         border: 1px solid rgba(255, 255, 255, 0.4);
         box-shadow: 0 4px 30px rgba(0,0,0,0.1);
@@ -212,22 +248,19 @@ footer
         height: 140px;
   }
   .card-item-mini {
-
-    justify-content: center;
-    position: relative;
-    display: flex;
-    align-items: center;
-    background: rgb(80 141 127 / 37%);
-    border-radius: 14px;
-    border: 1px solid rgba(255, 255, 255, 0.4);
-    box-shadow: 
-      0 4px 30px rgba(0, 0, 0, 0.1),
-      inset 0 0 0 1px rgba(255, 255, 255, 0.2);
-    overflow: hidden;
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
-    z-index: 1;
-    padding: 1rem;
-    height:140px;
+        justify-content: center;
+        position: relative;
+        display: flex;
+        align-items: center;
+        background: #fff;
+        border-radius: 8px;
+        border: 1px solid rgba(255, 255, 255, 0.4);
+        box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1), inset 0 0 0 1px rgba(255, 255, 255, 0.2);
+        overflow: hidden;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        z-index: 1;
+        padding: 1rem;
+        height: 140px;
   }
   .card-item {
 
@@ -235,7 +268,7 @@ footer
     position: relative;
     display: flex;
     align-items: center;
-    background: rgb(74 140 143 / 25%);
+    background: #fff;
     border-radius: 14px;
     border: 1px solid rgba(255, 255, 255, 0.4);
     box-shadow: 
@@ -278,15 +311,15 @@ footer
   }
 .card-item:hover  .img-card{
     opacity: .6;
-    transform: scale(1.135);
+
 }
 .card-item-mini:hover  .img-card{
     opacity: .6;
-    transform: scale(1.135);
+
 }
 .card-item-mini-two:hover  .img-card{
     opacity: .6;
-    transform: scale(1.135);
+
 }
 .card-item:hover .arrow-card{
     opacity: 1;
@@ -294,7 +327,7 @@ footer
     right: 15px;
     bottom: 18px;
     font-size: 2rem;
-    background: #504424;
+    background: #517970;
     width: 40px;
     height: 40px;
     text-align: center;
@@ -311,14 +344,14 @@ footer
     right: 15px;
     bottom: 18px;
     font-size: 2rem;
-    background: #504424;
+    background: #517970;
     width: 40px;
-    height:40px;
+    height: 40px;
     text-align: center;
     border-radius: 50%;
     display: flex;
     align-items: center;
-    padding-bottom: 6px;
+    padding-bottom: 7px;
     justify-content: space-evenly;
 }
 .card-item-mini-two:hover .arrow-card{
@@ -327,14 +360,14 @@ footer
     right: 15px;
     bottom: 18px;
     font-size: 2rem;
-    background: #504424;
+    background: #517970;
     width: 40px;
     height: 40px;
     text-align: center;
     border-radius: 50%;
     display: flex;
     align-items: center;
-    padding-bottom: 6px;
+    padding-bottom: 7px;
     justify-content: space-evenly;
    
 }
@@ -381,7 +414,7 @@ footer
         position: relative;
         display: flex;
         align-items: center;
-        background: rgb(120 131 197 / 25%);
+        background: #fff;
         border-radius: 14px;
         border: 1px solid rgba(255, 255, 255, 0.4);
         box-shadow: 0 4px 30px rgba(0,0,0,0.1);
@@ -397,7 +430,7 @@ footer
     position: relative;
     display: flex;
     align-items: center;
-    background: rgb(80 141 127 / 37%);
+    background: #fff;
     border-radius: 14px;
     border: 1px solid rgba(255, 255, 255, 0.4);
     box-shadow: 
@@ -414,7 +447,7 @@ footer
     position: relative;
     display: flex;
     align-items: center;
-    background: rgba(118, 189, 173, 0.25); /* Ваш цвет с прозрачностью */
+    background: #fff;
     border-radius: 14px;
     border: 1px solid rgba(255, 255, 255, 0.4);
     box-shadow: 
@@ -505,7 +538,6 @@ footer
     right: 15px;
     bottom: 18px;
     font-size: 2rem;
-    background: #504424;
     width: 50px;
     height: 50px;
     text-align: center;
@@ -547,24 +579,24 @@ padding-right: 10px;;
 }
 
 .card-item .img-card{
-    fill: #39574d;
+    fill: #000000;
     transition: transform 0.3s ease, box-shadow 0.3s ease;
-    width: 74px;
-    height: 74px;
+    width: 54px;
+    height: 54px;
     opacity: .6;
 }
 .card-item-mini .img-card{
-    fill: #39574d;
+    fill: #000000;
     transition: transform 0.3s ease, box-shadow 0.3s ease;
-    width: 74px;
-    height: 74px;
-    opacity: .6;
+    width: 54px;
+    height: 54px;
+    opacity: 0.5;
 }
 .card-item-mini-two .img-card{
-    fill: #7883c5;
+    fill: #000000;
     transition: transform 0.3s ease, box-shadow 0.3s ease;
-    width: 74px;
-    height: 74px;
+    width: 54px;
+    height: 54px;
     opacity: .6;
 }
 .box-button 
@@ -587,62 +619,109 @@ padding-right: 10px;;
 }
 .box-button-mini
 {
-        cursor: pointer;
-        text-align: right;
-        margin-bottom: 1rem;
+    cursor: pointer;
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    text-align: right;
+    margin-bottom: 0rem;
+    padding-bottom: 0rem;
 }
 .box-button-mini a{
-    font-weight: 500;
+    font-weight: 400;
     transition: .2s;
     background: none;
-    border: 0.120rem solid #000000;
+    border: 0.120rem solid #517970;
     padding: .3rem;
-    color: #000000;
-    border-radius: 7px;
+    color: #517970;
+    border-radius: 5px;
     text-decoration: none;
     line-height: 1rem;
     font-size: .8rem;
     text-transform: uppercase;
-    background: #e0f1ff;
+    
  
 }
 .box-button-mini a:hover{
-    background: #a6baca;
+    background: #66a092;
     color: #000;
     
 
 }
-.arrow-card{
+.arrow-card {
     opacity: .3;
     position: absolute;
     right: 30px;
     bottom: 30px;
     font-size: .8rem;
-    background: #504424;
+    background: #517970;
     width: 20px;
     height: 20px;
     text-align: center;
     border-radius: 50%;
     display: flex;
     align-items: center;
+    justify-content: center;
     padding-bottom: 2px;
-    justify-content: space-evenly;
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
-    color:#e4f5f2;
+    transition: all 0.3s ease;
+    color: #e4f5f2;
     cursor: pointer;
+    overflow: hidden;
+    white-space: nowrap;
 }
-.arrow-card a{
+
+.arrow-card a {
     list-style: none;
-    color:#e4f5f2;
+    color: #e4f5f2;
     text-decoration: none;
-}
-.card-item .title p{
-    min-height: 97px;
+    transition: all 0.3s ease;
     display: flex;
     align-items: center;
-    justify-content: flex-start;
-    text-transform: uppercase;
-    font-weight: 500;
+   
+}
+.card-item:hover .arrow-card span,
+.card-item-mini:hover .arrow-card span,
+.card-item-mini-two:hover .arrow-card span{
+ margin-bottom: .2rem;
+}
+/* Стили при наведении */
+.card-item:hover .arrow-card,
+.card-item-mini:hover .arrow-card,
+.card-item-mini-two:hover .arrow-card
+
+{
+    opacity: 1;
+    width: auto;
+    padding: 0 15px;
+    border-radius: 20px;
+}
+.card-item-mini-two:hover > .arrow-card a{
+  margin-bottom: 10px;
+}
+/* Текст "Перейти" перед стрелкой */
+.arrow-card::before {
+    content: attr(data-text);
+    display: none;
+    margin-right: 5px;
+    font-size: 12px;
+}
+
+.card-item:hover .arrow-card::before,
+.card-item-mini:hover .arrow-card::before,
+.card-item-mini-two:hover .arrow-card::before {
+    display: inline;
+}
+
+/* Иконка стрелки */
+.arrow-card svg {
+    transition: all 0.3s ease;
+    flex-shrink: 0;
+}
+
+.card-item:hover .arrow-card svg,
+.card-item-mini:hover .arrow-card svg,
+.card-item-mini-two:hover .arrow-card svg {
+    margin-left: 5px;
 }
 .card-item-mini .title p{
     min-height: 97px;
@@ -823,7 +902,6 @@ padding-right: 10px;;
     padding: 8px 16px;
     color: #333;
     text-decoration: none;
-    transition: background 0.2s;
 }
 
 .dropdown-item:hover {
@@ -847,6 +925,14 @@ padding-right: 10px;;
     border-radius: 50%;
 }
 @media (min-width:700px){
+  .card-item .title p{
+    min-height: 97px;
+    display: flex;
+    align-items: flex-start;
+    justify-content: flex-start;
+    text-transform: uppercase;
+    font-weight: 500;
+}
 .box-uv{
     position: absolute;
     right: 7rem;
@@ -855,6 +941,14 @@ padding-right: 10px;;
 }
 }
 @media (max-width:700px){
+  .card-item .title p{
+    min-height: 97px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    text-transform: uppercase;
+    font-weight: 500;
+}
 .box-uv{
     position: absolute;
     right: 7rem;
@@ -971,7 +1065,7 @@ body.modal-open {
   transition: .3s;
 }
 .dropdown-menu {
-  padding:0rem .5rem;
+  padding: .8rem .5rem;
 }
 .edit svg, .delete svg{
 
@@ -1093,3 +1187,212 @@ body.modal-open {
 .material tr:hover{
   background: #76bdac17;
 }
+
+/* Временное скрытие SVG до полной загрузки */
+svg:not([data-loaded]) {
+    visibility: hidden;
+    opacity: 0;
+}
+
+/* После загрузки SVG будут видны */
+svg[data-loaded] {
+    visibility: visible;
+    opacity: 1;
+    transition: opacity 0.3s ease;
+}
+
+
+/* Основные стили ночного режима */
+body.night-mode {
+    background-color: #36433e;
+    color: #e0e0e0;
+}
+
+/* Карточки в ночном режиме */
+body.night-mode .card-item,
+body.night-mode .card-item-mini,
+body.night-mode .card-item-mini-two,
+body.night-mode .card-item-profile {
+    background: rgba(40, 50, 45, 0.8);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3), 
+                inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+}
+
+/* Hover-эффекты карточек в ночном режиме */
+body.night-mode .card-item:not(.no-hover):hover,
+body.night-mode .card-item-mini:not(.no-hover):hover,
+body.night-mode .card-item-mini-two:not(.no-hover):hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4),
+                inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+}
+
+/* Текст и заголовки в ночном режиме */
+body.night-mode .title a,
+body.night-mode .card-item .title p,
+body.night-mode .card-item-mini .title p,
+body.night-mode .material a {
+    color: #e0e0e0;
+    text-shadow: 0 0 2px rgba(0, 0, 0, 0.5);
+}
+
+/* Кнопки в ночном режиме */
+body.night-mode .submit-button {
+    background: #5a8a7d;
+    text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.5);
+}
+
+body.night-mode .submit-button:hover {
+    background: #4a7267;
+}
+
+/* Переключатель день/ночь */
+.tumbler-wrapper {
+    width: 50px;
+    height: 30px;
+    background-color: #5a8a7d;
+    border-radius: 30px;
+    position: relative;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+body.night-mode .tumbler-wrapper {
+    background-color: #3d4a45;
+}
+
+.tumbler {
+    position: absolute;
+    height: 24px;
+    width: 24px;
+    border-radius: 50%;
+    background-color: #fff;
+    top: 3px;
+    left: 3px;
+    transition: transform 0.3s ease, background-color 0.3s;
+    z-index: 2;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+body.night-mode .tumbler {
+    transform: translateX(20px);
+    background-color: #d8d8d8;
+}
+
+/* Иконки в переключателе */
+.tumbler-wrapper svg {
+    width: 16px;
+    height: 16px;
+    position: relative;
+    z-index: 1;
+    transition: opacity 0.3s;
+}
+
+.tumbler-wrapper svg:first-child {
+    margin-left: 5px;
+    opacity: 1;
+}
+
+.tumbler-wrapper svg:last-child {
+    margin-right: 5px;
+    opacity: 0.3;
+}
+
+body.night-mode .tumbler-wrapper svg:first-child {
+    opacity: 0.3;
+}
+
+body.night-mode .tumbler-wrapper svg:last-child {
+    opacity: 1;
+}
+
+/* Дополнительные элементы в ночном режиме */
+body.night-mode .dropdown-menu {
+    background: #3d4a45;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+body.night-mode .dropdown-item {
+    color: #e0e0e0;
+}
+
+body.night-mode .dropdown-item:hover {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+body.night-mode .arrow-left {
+    border-color: rgba(255, 255, 255, 0.3);
+    fill: rgba(255, 255, 255, 0.6);
+}
+
+body.night-mode .arrow-left:hover {
+    border-color: #5a8a7d;
+    fill: #5a8a7d;
+}
+
+/* Таблицы в ночном режиме */
+body.night-mode .responsive-table {
+    background: rgba(40, 50, 45, 0.8);
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+body.night-mode .responsive-table tr {
+    border-bottom-color: rgba(255, 255, 255, 0.1);
+}
+
+/* Элементы навигации */
+body.night-mode .navy:before {
+    box-shadow: inset 0 0 2000px rgba(255, 255, 255, 0.1);
+}
+
+/* Аватарки и иконки */
+body.night-mode .avca,
+body.night-mode .avca-mini,
+body.night-mode .uv-tick,
+body.night-mode .uv-sms {
+    border-color: rgba(255, 255, 255, 0.3);
+}
+
+body.night-mode .list-button img {
+    filter: brightness(1.5) invert(0) sepia(80%) saturate(500%) hue-rotate(145deg) brightness(0.9);
+}
+
+body.night-mode .list-button-2 img {
+    filter: brightness(1.5) invert(0) sepia(95%) saturate(500%) hue-rotate(145deg) brightness(0.8);
+    border-color: rgba(255, 255, 255, 0.3);
+}
+
+    .tumbler-wrapper {
+      width: 50px;
+      height: 30px;
+      background-color: #a7a7a7;
+      border-radius: 30px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0 6px;
+      cursor: pointer;
+      position: relative;
+    }
+
+    .tumbler-wrapper svg {
+      width: 15px;
+      height: 15px;
+    }
+
+    .tumbler {
+        z-index: 100;
+      position: absolute;
+      height: 20px;
+      width: 20px;
+      border-radius: 50%;
+      background-color: #fff;
+      transition: transform .5s, background-color .5s;
+      left: 7px;
+    }
+
+    body.night-mode .tumbler {
+      transform: translateX(calc(100% - 2px));
+    }

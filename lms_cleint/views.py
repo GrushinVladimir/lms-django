@@ -43,25 +43,46 @@ from django.contrib.auth import get_user_model
 logger = logging.getLogger(__name__)
 
 
+@require_POST
+@login_required
+def mark_grade_notification_as_read(request):
+    try:
+        data = json.loads(request.body)
+        answer_id = data.get('answer_id')
+        
+        if not answer_id:
+            return JsonResponse({'status': 'error', 'message': 'answer_id is required'}, status=400)
+        
+        answer = get_object_or_404(FileAnswer, pk=answer_id)
+        chapter_url = reverse('chapter_detail_student', args=[answer.chapter_file.chapter.id])
+        
+        # Помечаем все уведомления для этой оценки как прочитанные
+        Notification.objects.filter(
+            user=request.user,
+            notification_type='grade',
+            link__startswith=chapter_url  # Ищем по началу URL
+        ).update(is_read=True)
+        
+        return JsonResponse({'status': 'success'})
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
 
 @login_required
 def notifications(request):
-    notifications = request.user.notifications.all()
-    
-    # Помечаем уведомления как прочитанные при открытии страницы
-    if request.method == 'GET':
-        unread_notifications = notifications.filter(is_read=False)
-        unread_notifications.update(is_read=True)
+    notifications = request.user.notifications.all().order_by('-created_at')
+    unread_count = request.user.notifications.filter(is_read=False).count()
     
     return render(request, 'lms_cleint/notifications.html', {
-        'notifications': notifications
+        'notifications': notifications,
+        'unread_count': unread_count
     })
 
 @login_required
 def mark_notification_as_read(request, notification_id):
     notification = get_object_or_404(Notification, pk=notification_id, user=request.user)
-    notification.is_read = True
-    notification.save()
+    if not notification.is_read:
+        notification.is_read = True
+        notification.save()
     return JsonResponse({'status': 'success'})
 
 @login_required
@@ -787,6 +808,7 @@ def get_grade_details(request, answer_id):
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
 
+
 @login_required
 @teacher_required
 def grade_file_answer(request):
@@ -810,11 +832,11 @@ def grade_file_answer(request):
         answer.is_new = True
         answer.save()
 
-        # Создаем уведомление для студента
+        # Создаем уведомление для студента с answer_id в ссылке
         Notification.objects.create(
             user=answer.student,
             message=f"Преподаватель {request.user.get_full_name()} поставил вам оценку {grade} за задание '{answer.chapter_file.display_name}'",
-            link=reverse('chapter_detail_student', args=[answer.chapter_file.chapter.id]),
+            link=f"{reverse('chapter_detail_student', args=[answer.chapter_file.chapter.id])}?answer_id={answer_id}",
             notification_type='grade'
         )
 
@@ -822,7 +844,6 @@ def grade_file_answer(request):
     except Exception as e:
         logger.error(f"Error grading file answer: {str(e)}")
         return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
-
 
 
 
@@ -1354,7 +1375,8 @@ def chapter_detail_student(request, chapter_id):
 
     if not chapter.student_groups.filter(id=student_profile.group.id).exists():
         return HttpResponseForbidden("У вас нет доступа к этой главе")
-
+    
+    answer_id = request.GET.get('answer_id')
     # Получаем все материалы главы
     files = ChapterFile.objects.filter(chapter=chapter).order_by('position')
     articles = Article.objects.filter(chapter=chapter).order_by('position')
@@ -1421,7 +1443,8 @@ def chapter_detail_student(request, chapter_id):
         'chapter': chapter,
         'materials': all_materials,
         'progress': progress,
-        'student': student_profile
+        'student': student_profile,
+        'answer_id': answer_id
     })
 
 @require_POST

@@ -16,7 +16,8 @@ def dynamic_breadcrumbs(context):
         'course_list': 'Дисциплины',
         'student_profile': 'Профиль студента',
         'teacher_profile': 'Профиль преподавателя',
-        'group_list' : 'Группа', }
+        'group_list' : 'Группа', 
+        'notifications' : 'Уведомления'}
     
     try:
         resolver_match = resolve(request.path_info)

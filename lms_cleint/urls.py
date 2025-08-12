@@ -96,6 +96,9 @@ urlpatterns = [
 
     path('notifications/', views.notifications, name='notifications'),
     path('notifications/mark_as_read/<int:notification_id>/', views.mark_notification_as_read, name='mark_notification_as_read'),
-    path('notifications/unread_count/', views.get_unread_count, name='get_unread_count')
+    path('notifications/unread_count/', views.get_unread_count, name='get_unread_count'),
+    path('mark_grade_notification_as_read/', views.mark_grade_notification_as_read, name='mark_grade_notification_as_read'),
+
+
 
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

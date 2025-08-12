@@ -1,28 +1,63 @@
 {% extends 'lms_cleint/base.html' %}
 {% load notification_tags %}
 
+{% block extra_css %}
+<style>
+    .grade-modal-content {
+        padding: 20px;
+    }
+    .grade-badge {
+        font-size: 1.1em;
+        padding: 5px 10px;
+    }
+    /* Стили для непросмотренных уведомлений */
+    .list-group-item.unread-notification {
+        background-color: #edafaf;
+        border-color: #d9a0a0;
+    }
+    .list-group-item.unread-notification:hover {
+        background-color: #e5a5a5;
+    }
+    /* Стили для бейджа "Новое" */
+    .unread-badge {
+        background-color: #d9534f;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
+{% for notification in notifications %}
+    <div class="notification {% if notification.is_read %}read{% else %}unread{% endif %}"
+         data-notification-id="{{ notification.id }}"
+         data-notification-type="{{ notification.notification_type }}">
+        <!-- содержимое уведомления -->
+    </div>
+{% endfor %}
+
+
 <div class="container mt-4">
     <h2>Уведомления</h2>
     
     <div class="list-group">
         {% for notification in notifications %}
-        <a href="{{ notification.link|default:'#' }}" 
-           class="list-group-item list-group-item-action {% if not notification.is_read %}list-group-item-primary{% endif %}"
-           onclick="markAsRead({{ notification.id }})">
+        <a href="#" 
+           class="list-group-item list-group-item-action {% if not notification.is_read %}unread-notification{% endif %}"
+           data-notification-id="{{ notification.id }}"
+           data-is-read="{{ notification.is_read|yesno:'1,0' }}"
+           data-link="{{ notification.link }}"
+           data-notification-type="{{ notification.notification_type }}"
+           onclick="handleNotificationClick(event)">
             <div class="d-flex w-100 justify-content-between">
                 <h5 class="mb-1">{{ notification.message }}</h5>
                 <small>{{ notification.created_at|timesince }} назад</small>
             </div>
             <p class="mb-1">
-                {% if notification.notification_type == 'grade' %}
-                <span class="badge bg-success">Оценка</span>
-                {% else %}
-                <span class="badge bg-info">Ответ студента</span>
-                {% endif %}
+                <span class="badge bg-{% if notification.notification_type == 'grade' %}success{% else %}info{% endif %}">
+                    {{ notification.get_notification_type_display }}
+                </span>
             </p>
             {% if not notification.is_read %}
-            <span class="badge bg-primary rounded-pill">Новое</span>
+            <span class="badge unread-badge rounded-pill">Новое</span>
             {% endif %}
         </a>
         {% empty %}
@@ -31,19 +66,126 @@
     </div>
 </div>
 
+<!-- Модальное окно уведомления об оценке -->
+<div class="modal fade" id="gradeNotificationModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Ваша оценка</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body grade-modal-content" id="gradeModalContent">
+                <!-- Содержимое будет загружено динамически -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-primary" data-bs-dismiss="modal">ОК</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
 <script>
-function markAsRead(notificationId) {
+function handleNotificationClick(event) {
+    event.preventDefault();
+    
+    const notificationElement = event.currentTarget;
+    const notificationId = notificationElement.getAttribute('data-notification-id');
+    const isRead = notificationElement.getAttribute('data-is-read') === '1';
+    const link = notificationElement.getAttribute('data-link');
+    const notificationType = notificationElement.getAttribute('data-notification-type');
+    
+    // Для непрочитанных уведомлений сначала помечаем как прочитанные
+    if (!isRead) {
+        markAsRead(notificationId, notificationElement);
+    }
+    
+    if (notificationType === 'grade') {
+        // Извлекаем answer_id из ссылки
+        const answerId = new URL(link, window.location.origin).searchParams.get('answer_id');
+        
+        if (window.location.pathname.includes('chapter_detail_student')) {
+            // Если мы уже на странице главы - просто открываем модальное окно
+            if (answerId) {
+                fetchGradeDetails(answerId);
+            }
+        } else {
+            // Если на странице уведомлений - переходим на страницу главы
+            window.location.href = link;
+        }
+    } else {
+        // Для других типов уведомлений просто переходим по ссылке
+        window.location.href = link;
+    }
+}
+
+function extractAnswerIdFromLink(link) {
+    if (!link) return null;
+    try {
+        const url = new URL(link, window.location.origin);
+        return url.searchParams.get('answer_id');
+    } catch {
+        return null;
+    }
+}
+
+function fetchGradeDetails(answerId) {
+    fetch(`/get_grade_details/${answerId}/`, {
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRFToken': getCookie('csrftoken')
+        }
+    })
+    .then(response => {
+        if (!response.ok) throw new Error('Network response was not ok');
+        return response.json();
+    })
+    .then(data => {
+        if (data.status === 'success') {
+            const modalBody = document.getElementById('gradeModalContent');
+            // ... (остальной код заполнения модального окна)
+            
+            // Показываем модальное окно
+            const modal = new bootstrap.Modal(document.getElementById('gradeNotificationModal'));
+            modal.show();
+        }
+    })
+    .catch(error => console.error('Error loading grade details:', error));
+}
+
+function markAsRead(notificationId, notificationElement) {
     fetch(`/notifications/mark_as_read/${notificationId}/`, {
         method: 'POST',
         headers: {
             'X-CSRFToken': '{{ csrf_token }}',
             'Content-Type': 'application/json'
         }
+    }).then(response => {
+        if (response.ok) {
+            // Обновляем стиль уведомления после пометки как прочитанного
+            notificationElement.classList.remove('unread-notification');
+            notificationElement.setAttribute('data-is-read', '1');
+            const badge = notificationElement.querySelector('.unread-badge');
+            if (badge) badge.remove();
+        }
     });
 }
+
+// Функция для получения CSRF-токена
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
 </script>
-
-
 {% endblock %}
-
-
