@@ -11,3 +11,18 @@ def greeting_context(request):
         greeting = "Добрый вечер"
     
     return {'greeting': greeting}
+
+
+def user_profile_info(request):
+    """Безопасно проверяет наличие профилей пользователя"""
+    has_student_profile = hasattr(request.user, 'studentprofile')
+    has_teacher_profile = hasattr(request.user, 'teacherprofile')
+    
+    return {
+        'has_student_profile': has_student_profile,
+        'has_teacher_profile': has_teacher_profile,
+        'is_student': has_student_profile,
+        'is_teacher': has_teacher_profile,
+        'user_profile': request.user.studentprofile if has_student_profile else 
+                        (request.user.teacherprofile if has_teacher_profile else None)
+    }

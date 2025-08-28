@@ -24,13 +24,14 @@
           </a>{% if not forloop.last %}, {% endif %}
         {% endfor %}
       </td>
-      {% if user.is_teacher or user.teacherprofile %}
+   
       <td data-label="Группы">
         {% for group in subject.student_groups.all %}
           <a href="{% url 'group_list' group.id %}">{{ group.group_number }}</a>
           {% if not forloop.last %}, {% endif %}
         {% endfor %}
       </td>
+         {% if user.is_teacher or user.teacherprofile %}
       <td data-label="Действия">  
         <div class="move">
           <a href="" class="edit">

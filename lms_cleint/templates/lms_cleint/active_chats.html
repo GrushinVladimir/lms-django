@@ -1,0 +1,128 @@
+{% extends 'lms_cleint/base.html' %}
+
+{% block content %}
+<div class="col-md-10 m-auto">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h3>{% if user.studentprofile %}Мои чаты{% else %}Чаты с студентами{% endif %}</h3>
+        <a href="{% if user.studentprofile %}{% url 'course_list' %}{% else %}{% url 'teacher_dashboard' %}{% endif %}" 
+           class="btn btn-outline-secondary">
+            Назад
+        </a>
+    </div>
+
+    <ul class="nav nav-tabs mb-4">
+        <li class="nav-item">
+            <a class="nav-link active" data-bs-toggle="tab" href="#active">Активные чаты</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link" data-bs-toggle="tab" href="#completed">Завершенные чаты</a>
+        </li>
+    </ul>
+
+    <div class="tab-content">
+        <div class="tab-pane fade show active" id="active">
+            {% for session in active_sessions %}
+            <div class="card mb-3 chat-card {% if session.unread_count > 0 %}unread{% endif %}">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h5 class="card-title">
+                                <a href="{% url 'chat_session' session.id %}">
+                                    {{ session.title }}
+                                </a>
+                                {% if session.unread_count > 0 %}
+                                <span class="badge bg-primary">{{ session.unread_count }}</span>
+                                {% endif %}
+                            </h5>
+<p class="card-text">
+    {% if has_student_profile %}
+    Преподаватель: {{ session.teacher }}
+    {% else %}
+    Студент: {{ session.student }} (Группа: {{ session.student.group }})
+    {% endif %}
+</p>
+                            <small class="text-muted">
+                                Последнее сообщение: {{ session.updated_at|timesince }} назад
+                            </small>
+                        </div>
+                        <div class="chat-status">
+                            <span class="badge bg-{% if session.status == 'active' %}success{% else %}warning{% endif %}">
+                                {{ session.get_status_display }}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+            <div class="text-center py-4">
+                <p class="text-muted">Нет активных чатов</p>
+            </div>
+            {% endfor %}
+        </div>
+
+        <div class="tab-pane fade" id="completed">
+            {% for session in completed_sessions %}
+            <div class="card mb-3 chat-card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h5 class="card-title">
+                                <a href="{% url 'chat_session' session.id %}">
+                                    {{ session.title }}
+                                </a>
+                            </h5>
+                            <p class="card-text">
+                                {% if user.studentprofile %}
+                                Преподаватель: {{ session.teacher }}
+                                {% else %}
+                                Студент: {{ session.student }} (Группа: {{ session.student.group }})
+                                {% endif %}
+                            </p>
+                            <small class="text-muted">
+                                Завершен: {{ session.completed_at|date:"d.m.Y H:i" }}
+                            </small>
+                        </div>
+                        <button class="btn btn-outline-primary btn-sm reopen-btn" 
+                                data-session-id="{{ session.id }}">
+                            Возобновить
+                        </button>
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+            <div class="text-center py-4">
+                <p class="text-muted">Нет завершенных чатов</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Обработка возобновления чата
+    document.querySelectorAll('.reopen-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const sessionId = this.dataset.sessionId;
+            if (confirm('Вы уверены, что хотите возобновить этот чат?')) {
+                fetch(`/chat/reopen/${sessionId}/`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': '{{ csrf_token }}',
+                        'Content-Type': 'application/json'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        window.location.reload();
+                    }
+                });
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

@@ -103,12 +103,16 @@ function handleNotificationClick(event) {
     
     if (notificationType === 'grade') {
         // Извлекаем answer_id из ссылки
-        const answerId = new URL(link, window.location.origin).searchParams.get('answer_id');
+        const answerId = extractAnswerIdFromLink(link);
         
         if (window.location.pathname.includes('chapter_detail_student')) {
             // Если мы уже на странице главы - просто открываем модальное окно
             if (answerId) {
-                fetchGradeDetails(answerId);
+                // Находим иконку уведомления и имитируем клик
+                const notificationBadge = document.querySelector(`.notification-badge[data-answer-id="${answerId}"]`);
+                if (notificationBadge) {
+                    notificationBadge.click();
+                }
             }
         } else {
             // Если на странице уведомлений - переходим на страницу главы
@@ -119,7 +123,6 @@ function handleNotificationClick(event) {
         window.location.href = link;
     }
 }
-
 function extractAnswerIdFromLink(link) {
     if (!link) return null;
     try {
@@ -129,6 +132,7 @@ function extractAnswerIdFromLink(link) {
         return null;
     }
 }
+
 
 function fetchGradeDetails(answerId) {
     fetch(`/get_grade_details/${answerId}/`, {

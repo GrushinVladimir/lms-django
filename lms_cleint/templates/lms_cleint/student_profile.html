@@ -1,7 +1,10 @@
 {% extends 'lms_cleint/base.html' %}
 
 {% block content %}
-<div class="col-md-4 m-auto">
+
+<div class="col-md-8 m-auto profile-fon">
+<div class="row">
+<div class="col-md-6 m-auto">
 <div class="card-item-profile">
     <div class="avca">
     {% with student=user.studentprofile %}
@@ -38,6 +41,23 @@
         </tr>
     </table>
 
+</div>
+</div>
+<div class="col-md-6 m-auto">
+        <table class="table-profile" style="margin: auto;">
+        <tr>
+            <td><button class="add_answer size">Оценки</button></td>
+        </tr>
+        <tr>
+            <td><button class="add_answer size">Запись на консультацию</button></td>
+        </tr>
+        <tr>
+            <td><a href="{% url 'active_chats' %}" ><button class="add_answer size">Активные чаты</button></td></a>
+            <!-- Добавить где-нибудь в профиле студента -->
+
+        </tr>
+    </table>
+</div>
 </div>
 </div>
 {% endblock %}

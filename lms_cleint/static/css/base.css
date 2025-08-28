@@ -1,15 +1,92 @@
-html {
-    scroll-behavior: smooth;
-    scroll-snap-type: y proximity;
+
+/* Принудительно растягиваем backdrop на всю высоту документа */
+.modal-backdrop {
+    height: 100% !important;
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100vw !important;
+    overflow-y: scroll;
+}
+.m-info{
+    list-style: none;
+    border-bottom: 1px solid #eee;
+    line-height: 3rem;
+    margin-bottom: .5rem;
+
+}
+.add_answer{
+background-color: #6c757d;
+transition: transform 0.3s ease, box-shadow 0.3s ease;
+    color: #fff;
+    padding: 5px;
+    font-weight: 500;
+    border-radius: 8px;
+    font-size: .9rem;
+    font-family: var(--bs-body-font-family);
+    border: 1px solid #6c757d;
+    
+}
+.add_answer:hover{
+  background-color: #fff;
+  color: #6c757d;
+}
+.m-info:hover{
+  background: #f0f0f0;
+}
+.m-info-img-card{
+    width: 23px;
+    height: 23px;
+
+
+}
+.material-title a{
+  text-decoration: none;
+  font-weight: 400;
+  font-size: 1rem;
+  color:#000;
+}
+.responsive-table{
+      box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1), inset 0 0 0 1px rgba(255, 255, 255, 0.2);
+}
+.m-info a{
+  align-items: center;
+display: flex;
+    justify-content: space-between;
+    text-decoration: none;
+    color: #000;
+    padding-left: 8px;
+
+    padding-right: 8px;
+    border-left: 4px solid #000;
+}
+/* Фиксируем позицию модального окна */
+.modal {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    margin: auto;
+    overflow-y: scroll;
+    
+}
+@media (max-width: 568px) {
+.modal {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    width:95% !important;
+    height: 100% !important;
+    margin: auto;
+    overflow-x:hidden;
+
+
+    
+}
 }
 
-body {
-    overflow-x: hidden;
-    transform: translateZ(0);
-    backface-visibility: hidden;
-    perspective: 1000;
-    will-change: scroll-position;
-}
+
 /* Основные стили карточек (применяются всегда) */
 .card-item,
 .card-item-mini,
@@ -53,27 +130,7 @@ body {
   backface-visibility: hidden;
   transform: translateZ(0);
 }
-.background-block {
-  width: 100%;
-  opacity: .3;
-  height: 100vh;
-  filter: contrast(0.5);
-  background-image: url('../images/fonts-image.png');
-  background-size: cover; 
-  background-position: center; 
-  background-repeat: no-repeat; 
-  position: fixed;
-  overflow: hidden;
-  z-index: -1;
-}
 
-
-@media (max-width: 768px) {
-  .background-block {
-    background-size: cover; 
-    background-position: top center;
-  }
-}
 .card-item, .card-item-mini, .card-item-mini-two {
   
   backface-visibility: hidden;
@@ -100,7 +157,8 @@ body {
     align-items: center;
     display: flex;
     background: rgb(74 140 143 / 25%);
-    border-radius: 14px;
+    border-top-left-radius: 14px;
+    border-bottom-left-radius: 14px;
     border: 1px solid rgba(255, 255, 255, 0.4);
     box-shadow: 0 4px 30px rgba(0,0,0,0.1);
     transition: transform 0.3s ease, box-shadow 0.3s ease;
@@ -109,7 +167,33 @@ body {
     flex-direction: column;
 }
 
-
+.arrow-card{
+    opacity: 1;
+    position: absolute;
+    right: 13px;
+    bottom: 13px;
+    font-size: 1rem;
+    width: 90px;
+    height: 37px;
+    border: 2px solid #517970;
+    text-align: center;
+    border-radius: 9px;
+    display: flex
+;
+    align-items: center;
+    font-weight: 500;
+    justify-content: space-evenly;
+    color: #517970;
+}
+.arrow-card:hover{
+  background: #517970;
+  color:#fff
+}
+.size{
+    width: 220px;
+    padding: 15px;
+    font-size: 1rem;
+}
 footer 
 {
     background: #333;
@@ -123,6 +207,11 @@ footer
     bottom: 0;
     position: relative;
     width: 100%;
+}
+.profile-fon{
+border-radius: 14px;
+      background: #fff;
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1), inset 0 0 0 1px rgba(255, 255, 255, 0.2);
 }
 .navbar 
 {
@@ -283,7 +372,7 @@ footer
 
   /* Эффект "плавающего стекла" при наведении */
   .card-item:hover {
-    transform: translateY(-2px);
+
     box-shadow: 
       0 8px 32px rgba(0, 0, 0, 0.2),
       inset 0 0 0 1px rgba(255, 255, 255, 0.3);
@@ -300,15 +389,7 @@ footer
       0 8px 32px rgba(0, 0, 0, 0.2),
       inset 0 0 0 1px rgba(255, 255, 255, 0.3);
   }
-  .card-item:hover .content {
-    transform: translateY(-2px);
-  }
-    .card-item-mini:hover .content {
-    transform: translateY(-2px);
-  }
-      .card-item-mini-two:hover .content {
-    transform: translateY(-2px);
-  }
+
 .card-item:hover  .img-card{
     opacity: .6;
 
@@ -321,56 +402,8 @@ footer
     opacity: .6;
 
 }
-.card-item:hover .arrow-card{
-    opacity: 1;
-    position: absolute;
-    right: 15px;
-    bottom: 18px;
-    font-size: 2rem;
-    background: #517970;
-    width: 40px;
-    height: 40px;
-    text-align: center;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    padding-bottom: 7px;
-    justify-content: space-evenly;
-}
 
-.card-item-mini:hover .arrow-card{
-    opacity: 1;
-    position: absolute;
-    right: 15px;
-    bottom: 18px;
-    font-size: 2rem;
-    background: #517970;
-    width: 40px;
-    height: 40px;
-    text-align: center;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    padding-bottom: 7px;
-    justify-content: space-evenly;
-}
-.card-item-mini-two:hover .arrow-card{
-    opacity: 1;
-    position: absolute;
-    right: 15px;
-    bottom: 18px;
-    font-size: 2rem;
-    background: #517970;
-    width: 40px;
-    height: 40px;
-    text-align: center;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    padding-bottom: 7px;
-    justify-content: space-evenly;
-   
-}
+
   .content {
     transition: transform 0.2s cubic-bezier(0.25, 0.1, 0.25, 1);
   }
@@ -462,32 +495,24 @@ footer
 } 
   /* Эффект "плавающего стекла" при наведении */
   .card-item:hover {
-    transform: translateY(-5px);
+    
     box-shadow: 
       0 8px 32px rgba(0, 0, 0, 0.2),
       inset 0 0 0 1px rgba(255, 255, 255, 0.3);
   }
     .card-item-mini:hover {
-    transform: translateY(-5px);
+
     box-shadow: 
       0 8px 32px rgba(0, 0, 0, 0.2),
       inset 0 0 0 1px rgba(255, 255, 255, 0.3);
   }
       .card-item-mini-two:hover {
-    transform: translateY(-5px);
+
     box-shadow: 
       0 8px 32px rgba(0, 0, 0, 0.2),
       inset 0 0 0 1px rgba(255, 255, 255, 0.3);
   }
-  .card-item:hover .content {
-    transform: translateY(-2px);
-  }
-    .card-item-mini:hover .content {
-    transform: translateY(-2px);
-  }
-      .card-item-mini-two:hover .content {
-    transform: translateY(-2px);
-  }
+
 .card-item:hover  .img-card{
     opacity: .6;
     transform: scale(1.135);
@@ -500,53 +525,9 @@ footer
     opacity: .6;
     transform: scale(1.135);
 }
-.card-item:hover .arrow-card{
-    opacity: 1;
-    position: absolute;
-    right: 15px;
-    bottom: 18px;
-    font-size: 2rem;
-    background: #504424;
-    width: 50px;
-    height: 50px;
-    text-align: center;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    padding-bottom: 5px;
-    justify-content: space-evenly;
-}
-.card-item-mini:hover .arrow-card{
-    opacity: 1;
-    position: absolute;
-    right: 15px;
-    bottom: 18px;
-    font-size: 2rem;
-    background: #504424;
-    width: 50px;
-    height: 50px;
-    text-align: center;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    padding-bottom: 5px;
-    justify-content: space-evenly;
-}
-.card-item-mini-two:hover .arrow-card{
-    opacity: 1;
-    position: absolute;
-    right: 15px;
-    bottom: 18px;
-    font-size: 2rem;
-    width: 50px;
-    height: 50px;
-    text-align: center;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    padding-bottom: 5px;
-    justify-content: space-evenly;
-}
+
+
+
   .content {
     transition: transform 0.2s cubic-bezier(0.25, 0.1, 0.25, 1);
   }
@@ -628,13 +609,14 @@ padding-right: 10px;;
     padding-bottom: 0rem;
 }
 .box-button-mini a{
-    font-weight: 400;
+    font-weight: 500;
     transition: .2s;
     background: none;
-    border: 0.120rem solid #517970;
-    padding: .3rem;
-    color: #517970;
-    border-radius: 5px;
+    border: 0.130rem solid #6c757d;
+    padding: .4rem;
+    color: #ffffff;
+    background: #6c757d;
+    border-radius: 8px;
     text-decoration: none;
     line-height: 1rem;
     font-size: .8rem;
@@ -643,86 +625,14 @@ padding-right: 10px;;
  
 }
 .box-button-mini a:hover{
-    background: #66a092;
-    color: #000;
+    background: #ffffff;
+    color: #6c757d;
+    border: 0.130rem solid #6c757d;
     
 
 }
-.arrow-card {
-    opacity: .3;
-    position: absolute;
-    right: 30px;
-    bottom: 30px;
-    font-size: .8rem;
-    background: #517970;
-    width: 20px;
-    height: 20px;
-    text-align: center;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding-bottom: 2px;
-    transition: all 0.3s ease;
-    color: #e4f5f2;
-    cursor: pointer;
-    overflow: hidden;
-    white-space: nowrap;
-}
 
-.arrow-card a {
-    list-style: none;
-    color: #e4f5f2;
-    text-decoration: none;
-    transition: all 0.3s ease;
-    display: flex;
-    align-items: center;
-   
-}
-.card-item:hover .arrow-card span,
-.card-item-mini:hover .arrow-card span,
-.card-item-mini-two:hover .arrow-card span{
- margin-bottom: .2rem;
-}
-/* Стили при наведении */
-.card-item:hover .arrow-card,
-.card-item-mini:hover .arrow-card,
-.card-item-mini-two:hover .arrow-card
 
-{
-    opacity: 1;
-    width: auto;
-    padding: 0 15px;
-    border-radius: 20px;
-}
-.card-item-mini-two:hover > .arrow-card a{
-  margin-bottom: 10px;
-}
-/* Текст "Перейти" перед стрелкой */
-.arrow-card::before {
-    content: attr(data-text);
-    display: none;
-    margin-right: 5px;
-    font-size: 12px;
-}
-
-.card-item:hover .arrow-card::before,
-.card-item-mini:hover .arrow-card::before,
-.card-item-mini-two:hover .arrow-card::before {
-    display: inline;
-}
-
-/* Иконка стрелки */
-.arrow-card svg {
-    transition: all 0.3s ease;
-    flex-shrink: 0;
-}
-
-.card-item:hover .arrow-card svg,
-.card-item-mini:hover .arrow-card svg,
-.card-item-mini-two:hover .arrow-card svg {
-    margin-left: 5px;
-}
 .card-item-mini .title p{
     min-height: 97px;
     display: flex;
@@ -1057,7 +967,7 @@ body.modal-open {
     text-decoration: none;
     color: #000;
     padding: .3rem 0rem;
-    border-radius: 15px;
+    border-radius: 5px;
     
 }
 .dropdown-menu a:hover{

@@ -99,6 +99,15 @@ urlpatterns = [
     path('notifications/unread_count/', views.get_unread_count, name='get_unread_count'),
     path('mark_grade_notification_as_read/', views.mark_grade_notification_as_read, name='mark_grade_notification_as_read'),
 
-
+    # Chat URLs
+    path('chat/start/<int:teacher_id>/', views.start_chat, name='start_chat'),
+    path('chat/session/<int:session_id>/', views.chat_session, name='chat_session'),
+    path('chat/send/<int:session_id>/', views.send_message, name='send_message'),
+    path('chat/active/', views.active_chats, name='active_chats'),
+    path('chat/complete/<int:session_id>/', views.complete_chat, name='complete_chat'),
+    path('chat/reopen/<int:session_id>/', views.reopen_chat, name='reopen_chat'),
+    path('chat/unread_count/', views.get_unread_chat_count, name='get_unread_chat_count'),
+    path('chat/get_messages/<int:session_id>/', views.get_chat_messages, name='get_chat_messages'),
+    path('chat/typing/<int:session_id>/', views.typing_indicator, name='typing_indicator'),
 
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

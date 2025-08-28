@@ -365,4 +365,52 @@ class Notification(models.Model):
     def __str__(self):
         return f"{self.get_notification_type_display()} для {self.user}"
     
+class ChatSession(models.Model):
+    STATUS_CHOICES = [
+        ('active', 'Активный'),
+        ('completed', 'Завершенный'),
+        ('pending', 'Ожидание ответа'),
+    ]
     
+    student = models.ForeignKey(StudentProfile, on_delete=models.CASCADE, related_name='chat_sessions')
+    teacher = models.ForeignKey(TeacherProfile, on_delete=models.CASCADE, related_name='chat_sessions')
+    subject = models.ForeignKey(Subject, on_delete=models.SET_NULL, null=True, blank=True)
+    title = models.CharField(max_length=200, default='Чат с преподавателем')
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='active')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    completed_by = models.ForeignKey(CustomUser, on_delete=models.SET_NULL, null=True, blank=True)
+    completed_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ['-updated_at']
+
+    def __str__(self):
+        return f"Чат: {self.student} - {self.teacher}"
+
+class ChatMessage(models.Model):
+    MESSAGE_TYPES = [
+        ('text', 'Текст'),
+        ('file', 'Файл'),
+        ('system', 'Системное'),
+    ]
+    
+    session = models.ForeignKey(ChatSession, on_delete=models.CASCADE, related_name='messages')
+    sender = models.ForeignKey(CustomUser, on_delete=models.CASCADE)
+    message_type = models.CharField(max_length=10, choices=MESSAGE_TYPES, default='text')
+    content = models.TextField()
+    file = models.FileField(upload_to='chat_files/', null=True, blank=True)
+    file_name = models.CharField(max_length=255, blank=True)
+    is_read = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['created_at']
+
+    def __str__(self):
+        return f"{self.sender}: {self.content[:50]}"
+
+    def save(self, *args, **kwargs):
+        if self.file and not self.file_name:
+            self.file_name = self.file.name
+        super().save(*args, **kwargs)    

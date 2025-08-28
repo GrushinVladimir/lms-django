@@ -1,8 +1,10 @@
 {% extends 'lms_cleint/base.html' %}
 
 {% block content %}
-<div class="col-md-4 m-auto">
-    <div class="card-item-profile"> 
+<div class="col-md-8 m-auto profile-fon">
+<div class="row">
+<div class="col-md-6 m-auto">
+<div class="card-item-profile">
         <div class="avca">
             {% if teacher.avatar %}
                     <img src="{{ teacher.avatar.url }}" alt="Avatar" class="avatar-img">
@@ -35,6 +37,25 @@
                 </tr>
             </table>
     </div>
+</div>
+<div class="col-md-6 m-auto">
+        <table class="table-profile" style="margin: auto;">
+        <tr>
+            <td>
+                <!-- Исправленная проверка роли пользователя -->
+                {% if user.studentprofile %}
+                <form method="post" action="{% url 'start_chat' teacher.id %}">
+                    {% csrf_token %}
+                    <button type="submit" class="add_answer size">Начать чат</button>
+                </form>
+                {% elif user.teacherprofile %}
+                <a href="{% url 'active_chats' %}" class="add_answer size">Активные чаты</a>
+                {% endif %}
+            </td>
+        </tr>
+    </table>
+</div>
+</div>
 </div>
 {% endblock %}
 

@@ -4,7 +4,36 @@ from .models import (
     Course, Subject, StudentGroup, TeacherProfile,
     Chapter, ChapterFile, Article, Test, Question, Answer
 )
+from django import forms
+from .models import ChatSession, ChatMessage
 
+class ChatMessageForm(forms.ModelForm):
+    class Meta:
+        model = ChatMessage
+        fields = ['content', 'file']
+        widgets = {
+            'content': forms.Textarea(attrs={
+                'class': 'form-control',
+                'placeholder': 'Введите сообщение...',
+                'rows': 3
+            }),
+            'file': forms.FileInput(attrs={
+                'class': 'form-control',
+                'accept': '.pdf,.doc,.docx,.jpg,.jpeg,.png'
+            })
+        }
+
+class ChatSessionForm(forms.ModelForm):
+    class Meta:
+        model = ChatSession
+        fields = ['subject', 'title']
+        widgets = {
+            'subject': forms.Select(attrs={'class': 'form-select'}),
+            'title': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Тема чата'
+            })
+        }
 class CourseForm(forms.ModelForm):
     teachers = forms.ModelMultipleChoiceField(
         queryset=TeacherProfile.objects.all(),
