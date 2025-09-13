@@ -109,5 +109,6 @@ urlpatterns = [
     path('chat/unread_count/', views.get_unread_chat_count, name='get_unread_chat_count'),
     path('chat/get_messages/<int:session_id>/', views.get_chat_messages, name='get_chat_messages'),
     path('chat/typing/<int:session_id>/', views.typing_indicator, name='typing_indicator'),
+    path('chat/unread_count/', views.get_unread_chat_count, name='get_unread_chat_count'),
 
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

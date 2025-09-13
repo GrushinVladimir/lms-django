@@ -31,7 +31,7 @@
                 <div class="message-header">
                     <strong>
                         {% if message.sender == user %}Вы{% else %}
-                            {% if has_student_profile %}{{ session.teacher }}{% else %}{{ session.student }}{% endif %}
+                            {% if has_student_profile %}{{ session.teacher }}{% else %}11{<td>{{ student.last_name }} {{ student.first_name }} {{ student.middle_name }}</td>}{% endif %}
                         {% endif %}
                     </strong>
                     <small class="text-muted">{{ message.created_at|time }}</small>

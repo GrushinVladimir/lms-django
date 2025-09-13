@@ -73,7 +73,6 @@ def typing_indicator(request, session_id):
     return JsonResponse({'status': 'success'})
 @login_required
 def get_chat_messages(request, session_id):
-    """Получение новых сообщений чата в реальном времени"""
     session = get_object_or_404(ChatSession, pk=session_id)
     
     # Безопасная проверка доступа
@@ -99,15 +98,22 @@ def get_chat_messages(request, session_id):
     # Получаем новые сообщения
     new_messages = session.messages.filter(
         id__gt=last_message_id
-    ).select_related('sender').order_by('id')
+    ).select_related('sender', 'sender__teacherprofile', 'sender__studentprofile').order_by('id')
     
     # Форматируем сообщения для ответа
     messages_data = []
     for message in new_messages:
+        # Определяем имя отправителя с учетом профиля
+        sender_name = message.sender.get_full_name()
+        if hasattr(message.sender, 'teacherprofile'):
+            sender_name = message.sender.teacherprofile.get_full_name()
+        elif hasattr(message.sender, 'studentprofile'):
+            sender_name = message.sender.studentprofile.get_full_name()
+        
         messages_data.append({
             'message_id': message.id,
             'sender_id': message.sender.id,
-            'sender_name': message.sender.get_full_name(),
+            'sender_name': sender_name,  # Используем правильное имя
             'content': message.content,
             'file_url': message.file.url if message.file else None,
             'file_name': message.file_name,
@@ -207,6 +213,8 @@ def chat_session(request, session_id):
         'session': session,
         'messages': messages,
         'form': form,
+        'has_student_profile': hasattr(request.user, 'studentprofile'),  # Добавьте это
+        'has_teacher_profile': hasattr(request.user, 'teacherprofile'),  # Добавьте это
     }
     
     return render(request, 'lms_cleint/chat_session.html', context)
@@ -268,16 +276,7 @@ def send_message(request, session_id):
     if not has_student_profile and not has_teacher_profile:
         return JsonResponse({'status': 'error', 'message': 'Доступ запрещен'}, status=403)
     
-    # Добавим отладку
-    print(f"POST data: {request.POST}")
-    print(f"FILES: {request.FILES}")
-    print(f"Content type: {request.content_type}")
-    
     form = ChatMessageForm(request.POST, request.FILES)
-    
-    print(f"Form is valid: {form.is_valid()}")
-    if not form.is_valid():
-        print(f"Form errors: {form.errors}")
     
     if form.is_valid():
         message = form.save(commit=False)
@@ -290,6 +289,13 @@ def send_message(request, session_id):
         
         message.save()
         
+        # Определяем имя отправителя с учетом профиля
+        sender_name = request.user.get_full_name()
+        if hasattr(request.user, 'teacherprofile'):
+            sender_name = request.user.teacherprofile.get_full_name()
+        elif hasattr(request.user, 'studentprofile'):
+            sender_name = request.user.studentprofile.get_full_name()
+        
         # Обновляем статус сессии
         if has_student_profile:
             session.status = 'pending'
@@ -301,7 +307,7 @@ def send_message(request, session_id):
         recipient = session.teacher.user if has_student_profile else session.student.user
         Notification.objects.create(
             user=recipient,
-            message=f"Новое сообщение в чате от {request.user.get_full_name()}",
+            message=f"Новое сообщение в чате от {sender_name}",
             link=reverse('chat_session', args=[session.id]),
             notification_type='chat'
         )
@@ -312,9 +318,9 @@ def send_message(request, session_id):
             'content': message.content,
             'file_url': message.file.url if message.file else None,
             'file_name': message.file_name,
-            'sender_name': request.user.get_full_name(),
+            'sender_name': sender_name,  # Используем правильное имя
             'created_at': message.created_at.strftime('%H:%M'),
-            'sender_id': request.user.id  # Добавим sender_id для клиента
+            'sender_id': request.user.id
         })
     
     return JsonResponse({'status': 'error', 'errors': form.errors}, status=400)
@@ -407,28 +413,32 @@ def reopen_chat(request, session_id):
 
 @login_required
 def get_unread_chat_count(request):
-    # Безопасная проверка наличия профилей
-    has_student_profile = hasattr(request.user, 'studentprofile')
-    has_teacher_profile = hasattr(request.user, 'teacherprofile')
-    
-    if has_teacher_profile:
-        teacher = request.user.teacherprofile
-        unread_count = ChatMessage.objects.filter(
-            session__teacher=teacher,
-            sender__studentprofile__isnull=False,
-            is_read=False
-        ).count()
-    elif has_student_profile:
-        student = request.user.studentprofile
-        unread_count = ChatMessage.objects.filter(
-            session__student=student,
-            sender__teacherprofile__isnull=False,
-            is_read=False
-        ).count()
-    else:
-        unread_count = 0
-    
-    return JsonResponse({'unread_count': unread_count})
+    """Получает количество непрочитанных сообщений чата"""
+    try:
+        # Безопасная проверка наличия профилей
+        has_student_profile = hasattr(request.user, 'studentprofile')
+        has_teacher_profile = hasattr(request.user, 'teacherprofile')
+        
+        if has_teacher_profile:
+            teacher = request.user.teacherprofile
+            unread_count = ChatMessage.objects.filter(
+                session__teacher=teacher,
+                sender__studentprofile__isnull=False,
+                is_read=False
+            ).count()
+        elif has_student_profile:
+            student = request.user.studentprofile
+            unread_count = ChatMessage.objects.filter(
+                session__student=student,
+                sender__teacherprofile__isnull=False,
+                is_read=False
+            ).count()
+        else:
+            unread_count = 0
+        
+        return JsonResponse({'unread_chat_count': unread_count})
+    except Exception as e:
+        return JsonResponse({'unread_chat_count': 0, 'error': str(e)})
 
 
 @require_POST

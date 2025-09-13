@@ -1,26 +1,87 @@
 {% extends 'lms_cleint/base.html' %}
+{% load static %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/chat.css' %}">
+{% endblock %}
 
 {% block content %}
-<div class="col-md-8 m-auto">
-    <div class="card">
-        <div class="card-header">
-            <h3>Начать чат с {{ teacher }}</h3>
+<div class="col-md-10 m-auto">
+    <div class="chat-container">
+        <div class="chat-header">
+            <h4>{{ session.title }}</h4>
+            <div class="chat-info">
+                <span class="badge bg-{% if session.status == 'active' %}success{% elif session.status == 'pending' %}warning{% else %}secondary{% endif %}">
+                    {{ session.get_status_display }}
+                </span>
+                {% if session.status != 'completed' %}
+                <button class="btn btn-sm btn-outline-danger ms-2" id="complete-chat">
+                    Завершить сессию
+                </button>
+                {% endif %}
+            </div>
         </div>
-        <div class="card-body">
-            <form method="post">
+
+        <div class="chat-messages" id="chat-messages" 
+             data-session-id="{{ session.id }}" 
+             data-user-id="{{ user.id }}">
+            {% for message in messages %}
+            <div class="message {% if message.sender == user %}own-message{% else %}other-message{% endif %} {% if message.message_type == 'system' %}system-message{% endif %}" 
+                 data-message-id="{{ message.id }}">
+                <div class="message-header">
+                    <strong>
+                        {% if message.sender == user %}
+                            Вы
+                        {% else %}
+                            {% if message.sender.teacherprofile %}
+                                {{ message.sender.teacherprofile.get_full_name }}
+                            {% elif message.sender.studentprofile %}
+                                {{ message.sender.studentprofile.get_full_name }}
+                            {% else %}
+                                {{ message.sender.get_full_name }}
+                            {% endif %}
+                        {% endif %}
+                    </strong>
+                    <small class="text-muted">{{ message.created_at|time }}</small>
+                </div>
+                <div class="message-content">
+                    {% if message.message_type == 'file' %}
+                    <div class="file-message">
+                        <i class="fas fa-file"></i>
+                        <a href="{{ message.file.url }}" target="_blank">{{ message.file_name }}</a>
+                    </div>
+                    {% else %}
+                    {{ message.content|linebreaks }}
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        {% if session.status != 'completed' %}
+        <div class="chat-input">
+            <form id="message-form">
                 {% csrf_token %}
-                <div class="mb-3">
-                    <label class="form-label">Предмет</label>
-                    {{ form.subject }}
+                <div class="input-group">
+                    {{ form.content }}
+                    <label for="id_file" class="btn btn-outline-secondary">
+                        <i class="fas fa-paperclip"></i>
+                    </label>
+                    {{ form.file }}
+                    <button type="submit" class="btn btn-primary">Отправить</button>
                 </div>
-                <div class="mb-3">
-                    <label class="form-label">Тема чата</label>
-                    {{ form.title }}
-                </div>
-                <button type="submit" class="btn btn-primary">Начать общение</button>
-                <a href="{% url 'teacher_profile' teacher.id %}" class="btn btn-secondary">Отмена</a>
             </form>
         </div>
+        {% else %}
+        <div class="chat-completed">
+            <p class="text-center text-muted">Чат завершен</p>
+            <button class="btn btn-outline-primary" id="reopen-chat">Возобновить беседу</button>
+        </div>
+        {% endif %}
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/chat.js' %}"></script>
 {% endblock %}

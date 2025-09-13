@@ -10,7 +10,8 @@ class Chat {
         this.isPolling = false;
         this.typingTimeout = null;
         this.isTyping = false;
-        
+        this.chatCounterElement = document.getElementById('chat-counter');
+        this.updateChatCounterInterval = null;
         // Правильное имя метода - init
         this.init(); // Было this.init() но метод называется init(), а не initialize()
     }
@@ -22,8 +23,18 @@ class Chat {
         this.startPolling();
         this.loadLastMessageId();
         this.setupTypingIndicator();
+        this.startChatCounterPolling(); // Добавьте это
     }
-
+    startChatCounterPolling() {
+        // Обновляем счетчик каждые 30 секунд
+        this.updateChatCounter();
+        this.updateChatCounterInterval = setInterval(() => this.updateChatCounter(), 30000);
+    }
+        stopChatCounterPolling() {
+        if (this.updateChatCounterInterval) {
+            clearInterval(this.updateChatCounterInterval);
+        }
+    }
     setupEventListeners() {
         if (this.messageForm) {
             this.messageForm.addEventListener('submit', (e) => this.sendMessage(e));
@@ -44,7 +55,28 @@ class Chat {
             this.fileInput.addEventListener('change', (e) => this.handleFileSelect(e));
         }
     }
+    async updateChatCounter() {
+        try {
+            const response = await fetch('/chat/unread_count/');
+            if (response.ok) {
+                const data = await response.json();
+                this.updateChatCounterUI(data.unread_chat_count);
+            }
+        } catch (error) {
+            console.error('Error updating chat counter:', error);
+        }
+    }
 
+    updateChatCounterUI(count) {
+        if (this.chatCounterElement) {
+            if (count > 0) {
+                this.chatCounterElement.textContent = count;
+                this.chatCounterElement.style.display = 'inline';
+            } else {
+                this.chatCounterElement.style.display = 'none';
+            }
+        }
+    }
     async sendMessage(e) {
         if (e) e.preventDefault();
         
@@ -93,7 +125,43 @@ class Chat {
             alert('Ошибка отправки сообщения. Проверьте подключение и попробуйте снова.');
         }
     }
+ async checkNewMessages() {
+        try {
+            const response = await fetch(`/chat/get_messages/${this.sessionId}/?last_id=${this.lastMessageId}`);
+            
+            if (!response.ok) {
+                if (response.status === 403) {
+                    console.error('Доступ запрещен к чату');
+                    this.stopPolling();
+                    return;
+                }
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
 
+            const data = await response.json();
+            
+            if (data.status === 'success') {
+                if (data.messages && data.messages.length > 0) {
+                    data.messages.forEach(msg => {
+                        this.addMessageToChat(msg, msg.sender_id === this.userId);
+                        this.lastMessageId = Math.max(this.lastMessageId, msg.message_id);
+                    });
+                    this.scrollToBottom();
+                    
+                    // Обновляем счетчик при новых сообщениях
+                    this.updateChatCounter();
+                    
+                    // Воспроизводим звук уведомления для новых сообщений не от текущего пользователя
+                    const newMessagesFromOthers = data.messages.filter(msg => msg.sender_id !== this.userId);
+                    if (newMessagesFromOthers.length > 0) {
+                        this.playNotificationSound();
+                    }
+                }
+            }
+        } catch (error) {
+            console.error('Error checking new messages:', error);
+        }
+    }
     addMessageToChat(data, isOwn = false) {
         const messageDiv = document.createElement('div');
         messageDiv.className = `message ${isOwn ? 'own-message' : 'other-message'}`;
@@ -152,36 +220,48 @@ class Chat {
         }
     }
 
-    async checkNewMessages() {
-        try {
-            const response = await fetch(`/chat/get_messages/${this.sessionId}/?last_id=${this.lastMessageId}`);
-            
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+async checkNewMessages() {
+    try {
+        const response = await fetch(`/chat/get_messages/${this.sessionId}/?last_id=${this.lastMessageId}`);
+        
+        if (!response.ok) {
+            if (response.status === 403) {
+                console.error('Доступ запрещен к чату');
+                this.stopPolling();
+                return;
             }
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
 
-            const contentType = response.headers.get('content-type');
-            if (!contentType || !contentType.includes('application/json')) {
-                throw new TypeError('Ожидался JSON, но получили: ' + contentType);
-            }
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+            throw new TypeError('Ожидался JSON, но получили: ' + contentType);
+        }
 
-            const data = await response.json();
-            
-            if (data.status === 'success' && data.messages && data.messages.length > 0) {
+        const data = await response.json();
+        
+        if (data.status === 'success') {
+            if (data.messages && data.messages.length > 0) {
                 data.messages.forEach(msg => {
                     this.addMessageToChat(msg, msg.sender_id === this.userId);
                     this.lastMessageId = Math.max(this.lastMessageId, msg.message_id);
                 });
                 this.scrollToBottom();
                 
-                if (data.messages.length > 0 && data.messages[0].sender_id !== this.userId) {
+                // Воспроизводим звук уведомления для новых сообщений не от текущего пользователя
+                const newMessagesFromOthers = data.messages.filter(msg => msg.sender_id !== this.userId);
+                if (newMessagesFromOthers.length > 0) {
                     this.playNotificationSound();
                 }
             }
-        } catch (error) {
-            console.error('Error checking new messages:', error);
+        } else if (data.status === 'error') {
+            console.error('Ошибка сервера:', data.message);
         }
+    } catch (error) {
+        console.error('Error checking new messages:', error);
+        // Не останавливаем polling при временных ошибках
     }
+}
 
     playNotificationSound() {
         try {
